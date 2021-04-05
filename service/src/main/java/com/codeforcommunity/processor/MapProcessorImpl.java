@@ -3,6 +3,7 @@ package com.codeforcommunity.processor;
 import static org.jooq.generated.Tables.BLOCKS;
 import static org.jooq.generated.Tables.NEIGHBORHOODS;
 import static org.jooq.generated.Tables.RESERVATIONS;
+import static org.jooq.generated.Tables.SITES;
 import static org.jooq.impl.DSL.count;
 
 import com.codeforcommunity.api.IMapProcessor;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 import org.jooq.*;
 import org.jooq.generated.tables.records.BlocksRecord;
 import org.jooq.generated.tables.records.NeighborhoodsRecord;
+import org.jooq.generated.tables.records.SitesRecord;
 
 public class MapProcessorImpl implements IMapProcessor {
 
@@ -105,6 +107,20 @@ public class MapProcessorImpl implements IMapProcessor {
     }
   }
 
+  private SiteFeature siteFeatureFromRecord(SitesRecord sitesRecord) {
+    try {
+      JsonObject geometry = new JsonObject(sitesRecord.getGeometry());
+      return new NeighborhoodFeature(properties, geometry);
+    } catch (Exception e) {
+      String errorMessage =
+              String.format(
+                      "Exception thrown while processing conversion of geometry to JSON for neighborhood id [%d]",
+                      neighborhoodsRecord.getId());
+      logger.error(errorMessage, e);
+      throw e;
+    }
+  }
+
   @Override
   public BlockGeoResponse getBlockGeoJson() {
     List<BlockFeature> features =
@@ -121,5 +137,14 @@ public class MapProcessorImpl implements IMapProcessor {
             .map(this::neighborhoodFeatureFromRecord)
             .collect(Collectors.toList());
     return new NeighborhoodGeoResponse(features);
+  }
+
+  @Override
+  public SiteGeoResponse getSiteGeoJson() {
+    List<SiteFeature> features =
+            this.db.selectFrom(SITES).stream()
+                    .map(this::siteFeatureFromRecord)
+                    .collect(Collectors.toList());
+    return new SiteGeoResponse(features);
   }
 }
