@@ -1,14 +1,12 @@
 package com.codeforcommunity.dto.map;
 
-import io.vertx.core.json.JsonObject;
-
 public class SiteFeature {
   private final String type;
   private final SiteFeatureProperties properties;
-  private final JsonObject geometry;
+  private final GeometryPoint geometry;
 
-  public SiteFeature(String type, SiteFeatureProperties properties, JsonObject geometry) {
-    this.type = type;
+  public SiteFeature(SiteFeatureProperties properties, GeometryPoint geometry) {
+    this.type = "Feature";
     this.properties = properties;
     this.geometry = geometry;
   }
@@ -21,7 +19,7 @@ public class SiteFeature {
     return properties;
   }
 
-  public JsonObject getGeometry() {
+  public GeometryPoint getGeometry() {
     return geometry;
   }
 }

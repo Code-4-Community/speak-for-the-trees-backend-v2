@@ -1,9 +1,6 @@
 package com.codeforcommunity.processor;
 
-import static org.jooq.generated.Tables.BLOCKS;
-import static org.jooq.generated.Tables.NEIGHBORHOODS;
-import static org.jooq.generated.Tables.RESERVATIONS;
-import static org.jooq.generated.Tables.SITES;
+import static org.jooq.generated.Tables.*;
 import static org.jooq.impl.DSL.count;
 
 import com.codeforcommunity.api.IMapProcessor;
@@ -11,6 +8,9 @@ import com.codeforcommunity.dto.map.*;
 import com.codeforcommunity.enums.ReservationAction;
 import com.codeforcommunity.logger.SLogger;
 import io.vertx.core.json.JsonObject;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.jooq.*;
@@ -107,18 +107,17 @@ public class MapProcessorImpl implements IMapProcessor {
     }
   }
 
-  private SiteFeature siteFeatureFromRecord(SitesRecord sitesRecord) {
-    try {
-      JsonObject geometry = new JsonObject(sitesRecord.getGeometry());
-      return new NeighborhoodFeature(properties, geometry);
-    } catch (Exception e) {
-      String errorMessage =
-              String.format(
-                      "Exception thrown while processing conversion of geometry to JSON for neighborhood id [%d]",
-                      neighborhoodsRecord.getId());
-      logger.error(errorMessage, e);
-      throw e;
-    }
+  private SiteFeature siteFeatureFromRecord(Record8<Integer, Boolean, BigDecimal, String, Timestamp, String, BigDecimal, BigDecimal> sitesRecord) {
+    SiteFeatureProperties properties = new SiteFeatureProperties(sitesRecord.value1(),
+            sitesRecord.value2(),
+            sitesRecord.value3(),
+            sitesRecord.value4(),
+            sitesRecord.value5(),
+            "",
+            sitesRecord.value6()
+    );
+    GeometryPoint geometry = new GeometryPoint(sitesRecord.value7(), sitesRecord.value8());
+    return new SiteFeature(properties, geometry);
   }
 
   @Override
@@ -142,7 +141,11 @@ public class MapProcessorImpl implements IMapProcessor {
   @Override
   public SiteGeoResponse getSiteGeoJson() {
     List<SiteFeature> features =
-            this.db.selectFrom(SITES).stream()
+            this.db.select(SITES.ID, SITE_ENTRIES.TREE_PRESENT, SITE_ENTRIES.DIAMETER,
+                    SITE_ENTRIES.SPECIES, SITE_ENTRIES.UPDATED_AT, SITES.ADDRESS, SITES.LAT, SITES.LNG)
+                    .from(SITES)
+                    .join(SITE_ENTRIES).onKey()
+                    .stream()
                     .map(this::siteFeatureFromRecord)
                     .collect(Collectors.toList());
     return new SiteGeoResponse(features);

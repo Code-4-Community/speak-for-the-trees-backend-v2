@@ -94,3 +94,6 @@ CREATE TABLE IF NOT EXISTS potential_sites (
 /* [jooq ignore start] */
 ALTER SEQUENCE sites_id_seq RESTART WITH 3331215;
 /* [jooq ignore stop] */
+
+ALTER TABLE site_entries
+    ADD COLUMN updated_by VARCHAR(36);
