@@ -2,7 +2,6 @@ package com.codeforcommunity.processor;
 
 import static org.jooq.generated.tables.AdoptedSites.ADOPTED_SITES;
 import static org.jooq.generated.tables.Blocks.BLOCKS;
-import static org.jooq.generated.tables.EntryUsernames.ENTRY_USERNAMES;
 import static org.jooq.generated.tables.Neighborhoods.NEIGHBORHOODS;
 import static org.jooq.generated.tables.Reservations.RESERVATIONS;
 import static org.jooq.generated.tables.SiteEntries.SITE_ENTRIES;
@@ -26,15 +25,13 @@ import com.codeforcommunity.logger.SLogger;
 import io.vertx.core.json.JsonObject;
 import java.math.BigDecimal;
 import java.sql.Date;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.jooq.DSLContext;
-import org.jooq.Record4;
-import org.jooq.Record6;
 import org.jooq.Record2;
+import org.jooq.Record6;
 import org.jooq.Result;
 import org.jooq.Select;
 import org.jooq.generated.tables.records.BlocksRecord;
@@ -140,10 +137,7 @@ public class MapProcessorImpl implements IMapProcessor {
           sitesRecord) {
     SiteFeatureProperties properties =
         new SiteFeatureProperties(
-            sitesRecord.value1(),
-            sitesRecord.value2(),
-            sitesRecord.value3(),
-            sitesRecord.value4());
+            sitesRecord.value1(), sitesRecord.value2(), sitesRecord.value3(), sitesRecord.value4());
     GeometryPoint geometry = new GeometryPoint(sitesRecord.value5(), sitesRecord.value6());
     return new SiteFeature(properties, geometry);
   }
@@ -211,7 +205,7 @@ public class MapProcessorImpl implements IMapProcessor {
                 Integer, // Adopter User ID
                 BigDecimal, // Lat
                 BigDecimal>> // Lng
-            allSiteEntriesRecords =
+        allSiteEntriesRecords =
             this.db
                 .select(
                     SITES.ID,
@@ -226,13 +220,12 @@ public class MapProcessorImpl implements IMapProcessor {
                 .innerJoin(SITE_ENTRIES)
                 .on(SITES.ID.eq(SITE_ENTRIES.SITE_ID))
                 .where(
-                        SITE_ENTRIES.UPDATED_AT.in(
-                                this.db
-                                        .select(max(SITE_ENTRIES.UPDATED_AT))
-                                        .from(SITE_ENTRIES)
-                                        .groupBy(SITE_ENTRIES.SITE_ID)
-                                        .fetch()))
-
+                    SITE_ENTRIES.UPDATED_AT.in(
+                        this.db
+                            .select(max(SITE_ENTRIES.UPDATED_AT))
+                            .from(SITE_ENTRIES)
+                            .groupBy(SITE_ENTRIES.SITE_ID)
+                            .fetch()))
                 .orderBy(SITES.ID)
                 .fetch();
 
