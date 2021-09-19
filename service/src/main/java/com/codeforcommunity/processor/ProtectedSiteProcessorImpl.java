@@ -16,8 +16,8 @@ import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+import java.sql.Date;
 import java.sql.Timestamp;
-import java.time.LocalDate;
 import java.util.List;
 import org.jooq.DSLContext;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
@@ -62,7 +62,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
   }
 
   @Override
-  public void adoptSite(JWTData userData, int siteId, LocalDate dateAdopted) {
+  public void adoptSite(JWTData userData, int siteId, Date dateAdopted) {
     checkSiteExists(siteId);
     if (isAlreadyAdopted(siteId)) {
       throw new WrongAdoptionStatusException(true);
