@@ -5,6 +5,7 @@ import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.report.AdoptedSite;
 import com.codeforcommunity.dto.report.GetAdoptionReportResponse;
 import com.codeforcommunity.dto.report.GetReportCSVRequest;
+import com.codeforcommunity.dto.report.GetCommunityStatsResponse;
 import com.codeforcommunity.dto.report.GetStewardshipReportResponse;
 import com.codeforcommunity.dto.report.Stewardship;
 import com.codeforcommunity.enums.PrivilegeLevel;
@@ -25,73 +26,88 @@ import static org.jooq.generated.tables.Users.USERS;
 import static org.jooq.impl.DSL.concat;
 import static org.jooq.impl.DSL.val;
 import static org.jooq.impl.DSL.count;
+import org.jooq.DSLContext;
 
 public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
-    private final DSLContext db;
 
-    public ProtectedReportProcessorImpl(DSLContext db) {
-        this.db = db;
+  private final DSLContext db;
+
+  public ProtectedReportProcessorImpl(DSLContext db) {
+    this.db = db;
+  }
+
+  /**
+   * Throws an exception if the user is not an admin or super admin.
+   *
+   * @param level the privilege level of the user calling the route
+   */
+  void isAdminCheck(PrivilegeLevel level) {
+    if (!(level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN))) {
+      throw new AuthException("User does not have the required privilege level.");
+    }
+  }
+
+  /**
+   * Converts the previousDays parameter into a Date object. The earliest possible date returned is January 1, 1970
+   * (Unix epoch).
+   *
+   * @param getReportCSVRequest CSV report route request DTO
+   * @return a Date object which is previousDays days before the current date
+   */
+  private Date getStartDate(GetReportCSVRequest getReportCSVRequest) {
+    Long previousDays = getReportCSVRequest.getPreviousDays();
+    java.util.Date startDate =
+            java.util.Date.from(LocalDate.now().minusDays(previousDays).atStartOfDay(ZoneId.systemDefault()).toInstant());
+
+    // ensure that the date is after the Unix epoch
+    if (startDate.getTime() < 0) {
+        startDate = new java.util.Date(0);
     }
 
-    /**
-     * Throws an exception if the user is not an admin or super admin.
-     *
-     * @param level the privilege level of the user calling the route
-     */
-    private void isAdminCheck(PrivilegeLevel level) {
-        if (!(level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN))) {
-            throw new AuthException("User does not have the required privilege level.");
-        }
+    return new Date(startDate.getTime());
+  }
+
+  @Override
+  public GetCommunityStatsResponse getCommunityStats() {
+    GetCommunityStatsResponse response = db.select(
+      count(USERS.ID),
+      count(SITES.ID),
+      count(STEWARDSHIP.ID)).from(ADOPTED_SITES)
+    .fullJoin(USERS)
+    .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
+    .fullJoin(STEWARDSHIP)
+    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(GetCommunityStatsResponse.class).get(0);
+    return response;
+  }
+
+  @Override
+  public GetAdoptionReportResponse getAdoptionReport(JWTData userData) {
+    isAdminCheck(userData.getPrivilegeLevel());
+
+    // get all adopted sites
+    List<AdoptedSite> adoptedSites = queryAdoptedSites(new Date(0));
+
+    return new GetAdoptionReportResponse(adoptedSites);
+  }
+
+  @Override
+  public String getAdoptionReportCSV(JWTData userData, GetReportCSVRequest getReportCSVRequest) {
+    isAdminCheck(userData.getPrivilegeLevel());
+
+    Date startDate = getStartDate(getReportCSVRequest);
+
+    List<AdoptedSite> adoptedSites = queryAdoptedSites(startDate);
+
+    StringBuilder builder = new StringBuilder();
+    builder.append("Site ID, Address, Name, Email, Date Adopted, Activity Count, Neighborhood\n");
+    for (AdoptedSite site : adoptedSites) {
+        builder.append(site.getSiteId()).append(", ").append(site.getAddress()).append(", ").append(site.getName())
+                .append(", ").append(site.getEmail()).append(", ").append(site.getDateAdopted()).append(", ")
+                .append(site.getActivityCount()).append(", ").append(site.getNeighborhood()).append("\n");
     }
 
-    /**
-     * Converts the previousDays parameter into a Date object. The earliest possible date returned is January 1, 1970
-     * (Unix epoch).
-     *
-     * @param getReportCSVRequest CSV report route request DTO
-     * @return a Date object which is previousDays days before the current date
-     */
-    private Date getStartDate(GetReportCSVRequest getReportCSVRequest) {
-        Long previousDays = getReportCSVRequest.getPreviousDays();
-        java.util.Date startDate =
-                java.util.Date.from(LocalDate.now().minusDays(previousDays).atStartOfDay(ZoneId.systemDefault()).toInstant());
-
-        // ensure that the date is after the Unix epoch
-        if (startDate.getTime() < 0) {
-            startDate = new java.util.Date(0);
-        }
-
-        return new Date(startDate.getTime());
-    }
-
-    @Override
-    public GetAdoptionReportResponse getAdoptionReport(JWTData userData) {
-        isAdminCheck(userData.getPrivilegeLevel());
-
-        // get all adopted sites
-        List<AdoptedSite> adoptedSites = queryAdoptedSites(new Date(0));
-
-        return new GetAdoptionReportResponse(adoptedSites);
-    }
-
-    @Override
-    public String getAdoptionReportCSV(JWTData userData, GetReportCSVRequest getReportCSVRequest) {
-        isAdminCheck(userData.getPrivilegeLevel());
-
-        Date startDate = getStartDate(getReportCSVRequest);
-
-        List<AdoptedSite> adoptedSites = queryAdoptedSites(startDate);
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("Site ID, Address, Name, Email, Date Adopted, Activity Count, Neighborhood\n");
-        for (AdoptedSite site : adoptedSites) {
-            builder.append(site.getSiteId()).append(", ").append(site.getAddress()).append(", ").append(site.getName())
-                    .append(", ").append(site.getEmail()).append(", ").append(site.getDateAdopted()).append(", ")
-                    .append(site.getActivityCount()).append(", ").append(site.getNeighborhood()).append("\n");
-        }
-
-        return builder.toString();
-    }
+    return builder.toString();
+  }
 
     /**
      * Query sites that have been adopted at or after the given time.
@@ -121,57 +137,57 @@ public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
         return adoptedSites;
     }
 
-    @Override
-    public GetStewardshipReportResponse getStewardshipReport(JWTData userData) {
-        isAdminCheck(userData.getPrivilegeLevel());
+  @Override
+  public GetStewardshipReportResponse getStewardshipReport(JWTData userData) {
+    isAdminCheck(userData.getPrivilegeLevel());
 
-        // get all stewardships
-        List<Stewardship> stewardships = queryStewardships(new Date(0));
+    // get all stewardships
+    List<Stewardship> stewardships = queryStewardships(new Date(0));
 
-        return new GetStewardshipReportResponse(stewardships);
+    return new GetStewardshipReportResponse(stewardships);
+  }
+
+  @Override
+  public String getStewardshipReportCSV(JWTData userData, GetReportCSVRequest getReportCSVRequest) {
+    isAdminCheck(userData.getPrivilegeLevel());
+
+    Date startDate = getStartDate(getReportCSVRequest);
+
+    List<Stewardship> stewardships = queryStewardships(startDate);
+
+    StringBuilder builder = new StringBuilder();
+    builder.append("Site ID, Address, Name, Email, Date Performed, Watered, Mulched, Cleaned, Weeded, Neighborhood\n");
+    for (Stewardship site : stewardships) {
+        builder.append(site.getSiteId()).append(", ").append(site.getAddress()).append(", ").append(site.getName())
+                .append(", ").append(site.getEmail()).append(", ").append(site.getDatePerformed()).append(", ")
+                .append(site.getWatered()).append(", ").append(site.getMulched()).append(", ").append(site.getCleaned())
+                .append(", ").append(site.getWeeded()).append(", ").append(site.getNeighborhood()).append("\n");
     }
 
-    @Override
-    public String getStewardshipReportCSV(JWTData userData, GetReportCSVRequest getReportCSVRequest) {
-        isAdminCheck(userData.getPrivilegeLevel());
+    return builder.toString();
+  }
 
-        Date startDate = getStartDate(getReportCSVRequest);
+  /**
+   * Query stewardship activities that have been performed at or after the given date.
+   *
+   * @param startDate stewardship activities performed after this date are included in the returned list
+   * @return list of stewardship activities that have been performed at or after the given date
+   */
+  private List<Stewardship> queryStewardships(Date startDate) {
+    List<Stewardship> stewardships = db.select(SITES.ID, SITES.ADDRESS, concat(USERS.FIRST_NAME, val(" "), USERS.LAST_NAME),
+                    USERS.EMAIL, STEWARDSHIP.PERFORMED_ON, STEWARDSHIP.WATERED, STEWARDSHIP.MULCHED, STEWARDSHIP.CLEANED,
+                    STEWARDSHIP.WEEDED, NEIGHBORHOODS.NEIGHBORHOOD_NAME)
+            .from(STEWARDSHIP)
+            .leftJoin(SITES)
+            .on(STEWARDSHIP.SITE_ID.eq(SITES.ID))
+            .leftJoin(USERS)
+            .on(USERS.ID.eq(STEWARDSHIP.USER_ID))
+            .leftJoin(NEIGHBORHOODS)
+            .on(SITES.NEIGHBORHOOD_ID.eq(NEIGHBORHOODS.ID))
+            .where(STEWARDSHIP.PERFORMED_ON.ge(startDate))
+            .orderBy(USERS.FIRST_NAME, USERS.LAST_NAME, STEWARDSHIP.PERFORMED_ON, SITES.ID)
+            .fetchInto(Stewardship.class);
 
-        List<Stewardship> stewardships = queryStewardships(startDate);
-
-        StringBuilder builder = new StringBuilder();
-        builder.append("Site ID, Address, Name, Email, Date Performed, Watered, Mulched, Cleaned, Weeded, Neighborhood\n");
-        for (Stewardship site : stewardships) {
-            builder.append(site.getSiteId()).append(", ").append(site.getAddress()).append(", ").append(site.getName())
-                    .append(", ").append(site.getEmail()).append(", ").append(site.getDatePerformed()).append(", ")
-                    .append(site.getWatered()).append(", ").append(site.getMulched()).append(", ").append(site.getCleaned())
-                    .append(", ").append(site.getWeeded()).append(", ").append(site.getNeighborhood()).append("\n");
-        }
-
-        return builder.toString();
-    }
-
-    /**
-     * Query stewardship activities that have been performed at or after the given date.
-     *
-     * @param startDate stewardship activities performed after this date are included in the returned list
-     * @return list of stewardship activities that have been performed at or after the given date
-     */
-    private List<Stewardship> queryStewardships(Date startDate) {
-        List<Stewardship> stewardships = db.select(SITES.ID, SITES.ADDRESS, concat(USERS.FIRST_NAME, val(" "), USERS.LAST_NAME),
-                        USERS.EMAIL, STEWARDSHIP.PERFORMED_ON, STEWARDSHIP.WATERED, STEWARDSHIP.MULCHED, STEWARDSHIP.CLEANED,
-                        STEWARDSHIP.WEEDED, NEIGHBORHOODS.NEIGHBORHOOD_NAME)
-                .from(STEWARDSHIP)
-                .leftJoin(SITES)
-                .on(STEWARDSHIP.SITE_ID.eq(SITES.ID))
-                .leftJoin(USERS)
-                .on(USERS.ID.eq(STEWARDSHIP.USER_ID))
-                .leftJoin(NEIGHBORHOODS)
-                .on(SITES.NEIGHBORHOOD_ID.eq(NEIGHBORHOODS.ID))
-                .where(STEWARDSHIP.PERFORMED_ON.ge(startDate))
-                .orderBy(USERS.FIRST_NAME, USERS.LAST_NAME, STEWARDSHIP.PERFORMED_ON, SITES.ID)
-                .fetchInto(Stewardship.class);
-
-        return stewardships;
-    }
+    return stewardships;
+  }
 }
