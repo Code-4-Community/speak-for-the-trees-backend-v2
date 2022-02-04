@@ -19,7 +19,6 @@ import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
-import com.codeforcommunity.exceptions.UserDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
 import java.sql.Date;
 import java.sql.Timestamp;
