@@ -27,10 +27,7 @@ import static org.jooq.generated.tables.Users.USERS;
 import static org.jooq.impl.DSL.concat;
 import static org.jooq.impl.DSL.val;
 import static org.jooq.impl.DSL.count;
-<<<<<<< HEAD
-=======
 import static org.jooq.impl.DSL.countDistinct;
->>>>>>> community_stats_route
 
 public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
 
@@ -73,30 +70,17 @@ public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
 
   @Override
   public GetCommunityStatsResponse getCommunityStats() {
-<<<<<<< HEAD
-    List<CommunityStats> response = db.select(
-      count(USERS.ID),
-      count(SITES.ID),
-      count(STEWARDSHIP.ID)).from(ADOPTED_SITES)
-    .fullJoin(USERS)
-    .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
-    .fullJoin(STEWARDSHIP)
-    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(CommunityStats.class);
-    return new GetCommunityStatsResponse(response);
-=======
-    GetCommunityStatsResponse response = db.select(
-      countDistinct(USERS.ID),
-      countDistinct(ADOPTED_SITES.SITE_ID),
-      countDistinct(STEWARDSHIP.ID))
-    .from(ADOPTED_SITES)
-    .fullJoin(USERS)
-    .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
-    .fullJoin(STEWARDSHIP)
-    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID))
-    .fetchInto(GetCommunityStatsResponse.class).get(0);
+    List<CommunityStats> communityStats = db.select(
+                    countDistinct(USERS.ID),
+                    countDistinct(ADOPTED_SITES.SITE_ID),
+                    countDistinct(STEWARDSHIP.ID))
+            .from(ADOPTED_SITES)
+            .fullJoin(USERS)
+            .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
+            .fullJoin(STEWARDSHIP)
+            .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(CommunityStats.class);
 
-    return response;
->>>>>>> community_stats_route
+    return new GetCommunityStatsResponse(communityStats);
   }
 
   @Override
