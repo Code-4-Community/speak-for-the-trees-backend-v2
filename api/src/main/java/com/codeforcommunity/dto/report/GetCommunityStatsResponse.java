@@ -1,15 +1,14 @@
 package com.codeforcommunity.dto.report;
 
-import java.util.List;
 
 public class GetCommunityStatsResponse {
-  public final List<CommunityStats> communityStatsReport;
+  public final CommunityStats communityStatsReport;
 
-  public GetCommunityStatsResponse(List<CommunityStats> communityStatsReport) {
+  public GetCommunityStatsResponse(CommunityStats communityStatsReport) {
     this.communityStatsReport = communityStatsReport;
   }
 
-  public List<CommunityStats> getcommunityStatsReport() {
+  public CommunityStats getcommunityStatsReport() {
     return communityStatsReport;
   }
 }

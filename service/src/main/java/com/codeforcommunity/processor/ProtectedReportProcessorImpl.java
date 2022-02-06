@@ -70,7 +70,7 @@ public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
 
   @Override
   public GetCommunityStatsResponse getCommunityStats() {
-    List<CommunityStats> communityStats = db.select(
+    CommunityStats communityStats = db.select(
                     countDistinct(USERS.ID),
                     countDistinct(ADOPTED_SITES.SITE_ID),
                     countDistinct(STEWARDSHIP.ID))
@@ -78,7 +78,7 @@ public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
             .fullJoin(USERS)
             .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
             .fullJoin(STEWARDSHIP)
-            .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(CommunityStats.class);
+            .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(CommunityStats.class).get(0);
 
     return new GetCommunityStatsResponse(communityStats);
   }
