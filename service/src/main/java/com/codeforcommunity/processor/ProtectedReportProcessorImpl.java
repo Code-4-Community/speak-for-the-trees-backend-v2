@@ -26,7 +26,7 @@ import static org.jooq.generated.tables.Users.USERS;
 import static org.jooq.impl.DSL.concat;
 import static org.jooq.impl.DSL.val;
 import static org.jooq.impl.DSL.count;
-import org.jooq.DSLContext;
+import static org.jooq.impl.DSL.countDistinct;
 
 public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
 
@@ -70,13 +70,16 @@ public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
   @Override
   public GetCommunityStatsResponse getCommunityStats() {
     GetCommunityStatsResponse response = db.select(
-      count(USERS.ID),
-      count(SITES.ID),
-      count(STEWARDSHIP.ID)).from(ADOPTED_SITES)
+      countDistinct(USERS.ID),
+      countDistinct(ADOPTED_SITES.SITE_ID),
+      countDistinct(STEWARDSHIP.ID))
+    .from(ADOPTED_SITES)
     .fullJoin(USERS)
     .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
     .fullJoin(STEWARDSHIP)
-    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(GetCommunityStatsResponse.class).get(0);
+    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID))
+    .fetchInto(GetCommunityStatsResponse.class).get(0);
+
     return response;
   }
 
