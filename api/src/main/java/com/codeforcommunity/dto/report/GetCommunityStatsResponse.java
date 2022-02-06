@@ -2,13 +2,13 @@ package com.codeforcommunity.dto.report;
 
 
 public class GetCommunityStatsResponse {
-  public final CommunityStats communityStatsReport;
+  public final CommunityStats communityStats;
 
-  public GetCommunityStatsResponse(CommunityStats communityStatsReport) {
-    this.communityStatsReport = communityStatsReport;
+  public GetCommunityStatsResponse(CommunityStats communityStats) {
+    this.communityStats = communityStats;
   }
 
-  public CommunityStats getcommunityStatsReport() {
-    return communityStatsReport;
+  public CommunityStats getcommunityStats() {
+    return communityStats;
   }
 }
