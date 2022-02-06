@@ -3,6 +3,7 @@ package com.codeforcommunity.processor;
 import com.codeforcommunity.api.IProtectedReportProcessor;
 import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.report.AdoptedSite;
+import com.codeforcommunity.dto.report.CommunityStats;
 import com.codeforcommunity.dto.report.GetAdoptionReportResponse;
 import com.codeforcommunity.dto.report.GetReportCSVRequest;
 import com.codeforcommunity.dto.report.GetCommunityStatsResponse;
@@ -26,7 +27,6 @@ import static org.jooq.generated.tables.Users.USERS;
 import static org.jooq.impl.DSL.concat;
 import static org.jooq.impl.DSL.val;
 import static org.jooq.impl.DSL.count;
-import org.jooq.DSLContext;
 
 public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
 
@@ -69,15 +69,15 @@ public class ProtectedReportProcessorImpl implements IProtectedReportProcessor {
 
   @Override
   public GetCommunityStatsResponse getCommunityStats() {
-    GetCommunityStatsResponse response = db.select(
+    List<CommunityStats> response = db.select(
       count(USERS.ID),
       count(SITES.ID),
       count(STEWARDSHIP.ID)).from(ADOPTED_SITES)
     .fullJoin(USERS)
     .on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
     .fullJoin(STEWARDSHIP)
-    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(GetCommunityStatsResponse.class).get(0);
-    return response;
+    .on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID)).fetchInto(CommunityStats.class);
+    return new GetCommunityStatsResponse(response);
   }
 
   @Override
