@@ -8,6 +8,7 @@ import com.codeforcommunity.api.IProtectedNeighborhoodsProcessor;
 import com.codeforcommunity.api.IProtectedReportProcessor;
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.api.IProtectedUserProcessor;
+import com.codeforcommunity.api.IReportProcessor;
 import com.codeforcommunity.api.IReservationProcessor;
 import com.codeforcommunity.api.ISiteProcessor;
 import com.codeforcommunity.api.ITeamsProcessor;
@@ -15,6 +16,7 @@ import com.codeforcommunity.auth.JWTAuthorizer;
 import com.codeforcommunity.auth.JWTCreator;
 import com.codeforcommunity.auth.JWTHandler;
 import com.codeforcommunity.logger.SLogger;
+import com.codeforcommunity.processor.*;
 import com.codeforcommunity.processor.AuthProcessorImpl;
 import com.codeforcommunity.processor.ImportProcessorImpl;
 import com.codeforcommunity.processor.LeaderboardProcessorImpl;
@@ -109,6 +111,7 @@ public class ServiceMain {
     ISiteProcessor siteProc = new SiteProcessorImpl(this.db);
     IProtectedReportProcessor protectedReportProc = new ProtectedReportProcessorImpl(this.db);
     IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc = new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
+    IReportProcessor reportProc = new ReportProcessorImpl(this.db);
 
     // Create the API router and start the HTTP server
     ApiRouter router =
@@ -123,6 +126,7 @@ public class ServiceMain {
             protectedSiteProc,
             siteProc,
             protectedReportProc,
+            reportProc,
             protectedNeighborhoodsProc,
             jwtAuthorizer);
 
