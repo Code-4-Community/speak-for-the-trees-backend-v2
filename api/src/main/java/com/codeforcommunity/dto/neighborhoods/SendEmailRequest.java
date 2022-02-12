@@ -7,22 +7,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SendEmailRequest extends ApiDto {
-  private List<Integer> neighborhoodIds;
+  private List<Integer> neighborhoodIDs;
   private String emailBody;
 
-  public SendEmailRequest(List<Integer> neighborhoodIds, String emailBody) {
-    this.neighborhoodIds = neighborhoodIds;
+  public SendEmailRequest(List<Integer> neighborhoodIDs, String emailBody) {
+    this.neighborhoodIDs = neighborhoodIDs;
     this.emailBody = emailBody;
   }
 
   private SendEmailRequest() {}
 
-  public List<Integer> getNeighborhoodIds() {
-    return this.neighborhoodIds;
+  public List<Integer> getNeighborhoodIDs() {
+    return this.neighborhoodIDs;
   }
 
-  public void setNeighborhoodIds(List<Integer> neighborhoodIds) {
-    this.neighborhoodIds = neighborhoodIds;
+  public void setNeighborhoodIDs(List<Integer> neighborhoodIDs) {
+    this.neighborhoodIDs = neighborhoodIDs;
   }
 
   public String getEmailBody() {
@@ -38,8 +38,8 @@ public class SendEmailRequest extends ApiDto {
     String fieldName = fieldPrefix + "send_email";
     List<String> fields = new ArrayList<>();
 
-    if (neighborhoodIds == null) {
-      fields.add(fieldName + "neighborhoodIds");
+    if (neighborhoodIDs == null) {
+      fields.add(fieldName + "neighborhoodIDs");
     }
     if (emailBody == null) {
       fields.add(fieldName + "emailBody");
