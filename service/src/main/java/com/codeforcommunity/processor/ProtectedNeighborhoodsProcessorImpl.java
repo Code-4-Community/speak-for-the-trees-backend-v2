@@ -4,6 +4,8 @@ import com.codeforcommunity.api.IProtectedNeighborhoodsProcessor;
 import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.neighborhoods.SendEmailRequest;
 import com.codeforcommunity.dto.neighborhoods.UserEmailRecord;
+import com.codeforcommunity.enums.PrivilegeLevel;
+import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.requester.Emailer;
 import org.jooq.DSLContext;
 
@@ -23,12 +25,29 @@ public class ProtectedNeighborhoodsProcessorImpl implements IProtectedNeighborho
     this.emailer = emailer;
   }
 
+  /**
+   * Throws an exception if the user is not an admin or super admin.
+   *
+   * @param level the privilege level of the user calling the route
+   */
+  private void isAdminCheck(PrivilegeLevel level) {
+    if (!(level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN))) {
+      throw new AuthException("User does not have the required privilege level.");
+    }
+  }
+
   @Override
   public void sendEmail(JWTData userData, SendEmailRequest sendEmailRequest) {
+    isAdminCheck(userData.getPrivilegeLevel());
+
     List<Integer> neighborhoodIDs = sendEmailRequest.getNeighborhoodIDs();
+    if (neighborhoodIDs.size() == 0) {
+      neighborhoodIDs = db.select(NEIGHBORHOODS.ID).from(NEIGHBORHOODS).fetchInto(Integer.class);
+    }
+
     String emailBody = sendEmailRequest.getEmailBody();
 
-    List<UserEmailRecord> userEmailRecords = db.select(USERS.EMAIL, SITES.ADDRESS)
+    List<UserEmailRecord> userEmailRecords = db.select(USERS.EMAIL, USERS.FIRST_NAME, SITES.ADDRESS)
         .from(USERS)
         .leftJoin(ADOPTED_SITES)
         .on(USERS.ID.eq(ADOPTED_SITES.USER_ID))
@@ -39,7 +58,7 @@ public class ProtectedNeighborhoodsProcessorImpl implements IProtectedNeighborho
         .where(NEIGHBORHOODS.ID.in(neighborhoodIDs)).fetchInto(UserEmailRecord.class);
 
     userEmailRecords.forEach(record -> {
-      emailer.sendNeighborhoodsEmail(record.getEmail(), record.getName(), emailBody);
+      emailer.sendNeighborhoodsEmail(record.getEmail(), record.getFirstName(), record.getAddress(), emailBody);
     });
   }
 }
