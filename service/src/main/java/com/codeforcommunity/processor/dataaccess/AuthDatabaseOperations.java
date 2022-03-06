@@ -1,4 +1,4 @@
-package com.codeforcommunity.dataaccess;
+package com.codeforcommunity.processor.dataaccess;
 
 import static org.jooq.generated.Tables.USERS;
 import static org.jooq.generated.Tables.VERIFICATION_KEYS;

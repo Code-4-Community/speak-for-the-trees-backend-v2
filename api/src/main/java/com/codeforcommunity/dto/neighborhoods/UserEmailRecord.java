@@ -5,10 +5,7 @@ public class UserEmailRecord {
   private final String firstName;
   private final String address;
 
-  public UserEmailRecord(
-      String email,
-      String firstName,
-      String address) {
+  public UserEmailRecord(String email, String firstName, String address) {
     this.email = email;
     this.firstName = firstName;
     this.address = address;
@@ -22,5 +19,7 @@ public class UserEmailRecord {
     return this.firstName;
   }
 
-  public String getAddress() { return this.address; }
+  public String getAddress() {
+    return this.address;
+  }
 }

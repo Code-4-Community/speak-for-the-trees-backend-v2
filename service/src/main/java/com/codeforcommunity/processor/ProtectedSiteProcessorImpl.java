@@ -4,9 +4,9 @@ import static org.jooq.generated.Tables.ADOPTED_SITES;
 import static org.jooq.generated.Tables.BLOCKS;
 import static org.jooq.generated.Tables.NEIGHBORHOODS;
 import static org.jooq.generated.Tables.SITES;
-import static org.jooq.generated.Tables.USERS;
 import static org.jooq.generated.Tables.SITE_ENTRIES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
+import static org.jooq.generated.Tables.USERS;
 import static org.jooq.impl.DSL.max;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
@@ -28,8 +28,8 @@ import org.jooq.DSLContext;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
 import org.jooq.generated.tables.records.SitesRecord;
-import org.jooq.generated.tables.records.UsersRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
+import org.jooq.generated.tables.records.UsersRecord;
 
 public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
@@ -139,24 +139,22 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
       throw new WrongAdoptionStatusException(false);
     }
 
-    AdoptedSitesRecord adoptedSite = db.selectFrom(ADOPTED_SITES)
+    AdoptedSitesRecord adoptedSite =
+        db.selectFrom(ADOPTED_SITES)
             .where(ADOPTED_SITES.SITE_ID.eq(siteId))
             .fetchInto(AdoptedSitesRecord.class)
             .get(0);
 
     Integer adopterId = adoptedSite.getUserId();
 
-    UsersRecord adopter = db.selectFrom(USERS)
-            .where(USERS.ID.eq(adopterId))
-            .fetchOne();
+    UsersRecord adopter = db.selectFrom(USERS).where(USERS.ID.eq(adopterId)).fetchOne();
 
-    if(isAdmin(adopter.getPrivilegeLevel()) && !(userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN))) {
+    if (isAdmin(adopter.getPrivilegeLevel())
+        && !(userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN))) {
       throw new AuthException("User does not have the required privilege level.");
     }
 
-    db.deleteFrom(ADOPTED_SITES)
-            .where(ADOPTED_SITES.SITE_ID.eq(siteId))
-            .execute();
+    db.deleteFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)).execute();
   }
 
   @Override
