@@ -50,8 +50,8 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
 
 
   private void registerEditCanopyCoverage(Router router) {
-    Route adoptSiteRoute = router.get("/:neighborhood_id/edit_canopy");
-    adoptSiteRoute.handler(this::handleEditCanopyCoverage);
+    Route editCanopyCoverageRoute = router.get("/:neighborhood_id/edit_canopy");
+    editCanopyCoverageRoute.handler(this::handleEditCanopyCoverage);
   }
 
   private void handleEditCanopyCoverage(RoutingContext ctx) {

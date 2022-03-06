@@ -7,11 +7,9 @@ import java.util.List;
 
 public class EditCanopyCoverageRequest extends ApiDto {
   private Double canopyCoverage;
-  private Integer neighborhoodID;
 
-  public EditCanopyCoverageRequest(Double canopyCoverage, Integer neighborhoodID) {
+  public EditCanopyCoverageRequest(Double canopyCoverage) {
     this.canopyCoverage = canopyCoverage;
-    this.neighborhoodID = neighborhoodID;
   }
 
   private EditCanopyCoverageRequest() {}
@@ -25,18 +23,10 @@ public class EditCanopyCoverageRequest extends ApiDto {
       fields.add(fieldName + "canopyCoverage");
     }
 
-    if (this.neighborhoodID == null) {
-      fields.add(fieldName + "neighborhoodID");
-    }
-
     return fields;
   }
 
   public Double getCanopyCoverage() {
     return this.canopyCoverage;
-  }
-
-  public Integer getNeighborhoodID() {
-    return this.neighborhoodID;
   }
 }
