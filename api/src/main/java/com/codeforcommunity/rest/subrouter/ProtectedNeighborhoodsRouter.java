@@ -27,7 +27,6 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
 
     registerSendEmail(router);
     registerEditCanopyCoverage(router);
-    registerFake(router);
 
     return router;
   }
@@ -46,15 +45,6 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
 
     processor.sendEmail(userData, sendEmailRequest);
 
-    end(ctx.response(), 200);
-  }
-
-  private void registerFake(Router router) {
-    Route editCanopyCoverageRoute = router.post("/fake");
-    editCanopyCoverageRoute.handler(this::handleFake);
-  }
-
-  private void handleFake(RoutingContext ctx) {
     end(ctx.response(), 200);
   }
 
