@@ -10,5 +10,5 @@ public interface IProtectedNeighborhoodsProcessor {
   void sendEmail(JWTData userData, SendEmailRequest sendEmailRequest);
 
   /** Edits the specified neighborhood's canopy_coverage. */
-  void editCanopyCoverage(JWTData userData, EditCanopyCoverageRequest editCanopyCoverageRequest);
+  void editCanopyCoverage(JWTData userData, int neighborhoodID, EditCanopyCoverageRequest editCanopyCoverageRequest);
 }
