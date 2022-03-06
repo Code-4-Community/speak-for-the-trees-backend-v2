@@ -27,6 +27,7 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
 
     registerSendEmail(router);
     registerEditCanopyCoverage(router);
+    registerFake(router);
 
     return router;
   }
@@ -48,9 +49,18 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
     end(ctx.response(), 200);
   }
 
+  private void registerFake(Router router) {
+    Route editCanopyCoverageRoute = router.post("/fake");
+    editCanopyCoverageRoute.handler(this::handleFake);
+  }
+
+  private void handleFake(RoutingContext ctx) {
+    end(ctx.response(), 200);
+  }
+
 
   private void registerEditCanopyCoverage(Router router) {
-    Route editCanopyCoverageRoute = router.get("/:neighborhood_id/edit_canopy");
+    Route editCanopyCoverageRoute = router.post("/:neighborhood_id/edit_canopy");
     editCanopyCoverageRoute.handler(this::handleEditCanopyCoverage);
   }
 
