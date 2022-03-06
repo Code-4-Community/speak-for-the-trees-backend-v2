@@ -20,8 +20,8 @@ public class Emailer {
       PropertiesLoader.loadProperty("email_subject_password_reset_confirm");
   private final String subjectAccountDeleted =
       PropertiesLoader.loadProperty("email_subject_account_deleted");
-//  private final String subjectEmailNeighborhoods =
-//      PropertiesLoader.loadProperty("email_subject_neighborhood_notification");
+  //  private final String subjectEmailNeighborhoods =
+  //      PropertiesLoader.loadProperty("email_subject_neighborhood_notification");
 
   public Emailer() {
     String senderName = PropertiesLoader.loadProperty("email_sender_name");
@@ -108,7 +108,8 @@ public class Emailer {
     // TODO implement this
   }
 
-  public void sendNeighborhoodsEmail(String sendToEmail, String sendToName, String body, String address) {
+  public void sendNeighborhoodsEmail(
+      String sendToEmail, String sendToName, String body, String address) {
     String filePath = "emails/SendEmail.html";
 
     Map<String, String> templateValues = new HashMap<>();

@@ -4,6 +4,7 @@ import static com.codeforcommunity.rest.ApiRouter.end;
 
 import com.codeforcommunity.api.IProtectedNeighborhoodsProcessor;
 import com.codeforcommunity.auth.JWTData;
+import com.codeforcommunity.dto.neighborhoods.EditCanopyCoverageRequest;
 import com.codeforcommunity.dto.neighborhoods.SendEmailRequest;
 import com.codeforcommunity.rest.IRouter;
 import com.codeforcommunity.rest.RestFunctions;
@@ -25,6 +26,7 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
     Router router = Router.router(vertx);
 
     registerSendEmail(router);
+    registerEditCanopyCoverage(router);
 
     return router;
   }
@@ -36,9 +38,25 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
 
   private void handleSendEmail(RoutingContext ctx) {
     JWTData userData = ctx.get("jwt_data");
-    SendEmailRequest sendEmailRequest = RestFunctions.getJsonBodyAsClass(ctx, SendEmailRequest.class);
+    SendEmailRequest sendEmailRequest =
+        RestFunctions.getJsonBodyAsClass(ctx, SendEmailRequest.class);
 
     processor.sendEmail(userData, sendEmailRequest);
+
+    end(ctx.response(), 200);
+  }
+
+  private void registerEditCanopyCoverage(Router router) {
+    Route adoptSiteRoute = router.get("/edit_canopy");
+    adoptSiteRoute.handler(this::handleEditCanopyCoverage);
+  }
+
+  private void handleEditCanopyCoverage(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+    EditCanopyCoverageRequest editCanopyCoverageRequest =
+            RestFunctions.getJsonBodyAsClass(ctx, EditCanopyCoverageRequest.class);
+
+    processor.editCanopyCoverage(userData, editCanopyCoverageRequest);
 
     end(ctx.response(), 200);
   }

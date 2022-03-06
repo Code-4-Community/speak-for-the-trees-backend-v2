@@ -121,6 +121,9 @@ public class ServiceMain {
     IProtectedSiteProcessor protectedSiteProc = new ProtectedSiteProcessorImpl(this.db);
     ISiteProcessor siteProc = new SiteProcessorImpl(this.db);
     IProtectedReportProcessor protectedReportProc = new ProtectedReportProcessorImpl(this.db);
+    IReportProcessor reportProc = new ReportProcessorImpl(this.db);
+    IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc =
+        new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
     IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc = new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
     IReportProcessor reportProc = new ReportProcessorImpl(this.db);
 

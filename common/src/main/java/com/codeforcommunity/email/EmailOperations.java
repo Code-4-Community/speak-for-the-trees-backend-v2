@@ -1,14 +1,12 @@
 package com.codeforcommunity.email;
 
 import com.codeforcommunity.logger.SLogger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import org.simplejavamail.MailException;
 import org.simplejavamail.api.email.Email;
 import org.simplejavamail.api.mailer.AsyncResponse;
@@ -114,9 +112,7 @@ public class EmailOperations {
     return Optional.of(output.toString());
   }
 
-  /**
-   * Try sending the given email with the given subject.
-   */
+  /** Try sending the given email with the given subject. */
   private void trySendingEmail(Email email, String subject) {
     try {
       AsyncResponse mailResponse = mailer.sendMail(email, true);
@@ -171,19 +167,21 @@ public class EmailOperations {
    * Send an email with the given subject and body to the users with the given names at the given
    * email addresses.
    */
-  public void sendEmailToMultipleRecipients(List<String> sendToEmails, String subject, String emailBody) {
+  public void sendEmailToMultipleRecipients(
+      List<String> sendToEmails, String subject, String emailBody) {
     if (!shouldSendEmails) {
       return;
     }
 
     logger.info(String.format("Sending emails with subject `%s`", subject));
 
-    Email email = EmailBuilder.startingBlank()
-        .from(senderName, sendEmail)
-        .bccAddresses(sendToEmails)
-        .withSubject(subject)
-        .withHTMLText(emailBody)
-        .buildEmail();
+    Email email =
+        EmailBuilder.startingBlank()
+            .from(senderName, sendEmail)
+            .bccAddresses(sendToEmails)
+            .withSubject(subject)
+            .withHTMLText(emailBody)
+            .buildEmail();
 
     this.trySendingEmail(email, subject);
   }
