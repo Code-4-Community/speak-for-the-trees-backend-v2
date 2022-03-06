@@ -31,6 +31,8 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
     return router;
   }
 
+
+
   private void registerSendEmail(Router router) {
     Route adoptSiteRoute = router.get("/send_email");
     adoptSiteRoute.handler(this::handleSendEmail);
@@ -46,8 +48,9 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
     end(ctx.response(), 200);
   }
 
+
   private void registerEditCanopyCoverage(Router router) {
-    Route adoptSiteRoute = router.get("/edit_canopy");
+    Route adoptSiteRoute = router.get("/:neighborhood_id/edit_canopy");
     adoptSiteRoute.handler(this::handleEditCanopyCoverage);
   }
 
@@ -55,8 +58,9 @@ public class ProtectedNeighborhoodsRouter implements IRouter {
     JWTData userData = ctx.get("jwt_data");
     EditCanopyCoverageRequest editCanopyCoverageRequest =
             RestFunctions.getJsonBodyAsClass(ctx, EditCanopyCoverageRequest.class);
+    int neighborhoodId = RestFunctions.getRequestParameterAsInt(ctx.request(), "neighborhood_id");
 
-    processor.editCanopyCoverage(userData, editCanopyCoverageRequest);
+    processor.editCanopyCoverage(userData, neighborhoodId,editCanopyCoverageRequest);
 
     end(ctx.response(), 200);
   }

@@ -12,6 +12,7 @@ import com.codeforcommunity.dto.neighborhoods.SendEmailRequest;
 import com.codeforcommunity.dto.neighborhoods.UserEmailRecord;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
+import com.codeforcommunity.exceptions.MalformedParameterException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.requester.Emailer;
 import java.util.List;
@@ -63,25 +64,20 @@ public class ProtectedNeighborhoodsProcessorImpl implements IProtectedNeighborho
             .fetchInto(UserEmailRecord.class);
 
     userEmailRecords.forEach(
-        record -> {
-          emailer.sendNeighborhoodsEmail(
-              record.getEmail(), record.getFirstName(), record.getAddress(), emailBody);
-        });
+        record -> emailer.sendNeighborhoodsEmail(
+            record.getEmail(), record.getFirstName(), record.getAddress(), emailBody));
   }
 
   public void editCanopyCoverage(
-      JWTData userData, EditCanopyCoverageRequest editCanopyCoverageRequest) {
+      JWTData userData, int neighborhoodID, EditCanopyCoverageRequest editCanopyCoverageRequest) {
     isAdminCheck(userData.getPrivilegeLevel());
-
-    Double canopyCoverage = 0.0;
-
-    Integer neighborhoodID = editCanopyCoverageRequest.getNeighborhoodID();
-
     checkNeighborhoodExists(neighborhoodID);
 
+    Double canopyCoverage = editCanopyCoverageRequest.getCanopyCoverage();
+    checkIfCanopyCoverageValid(canopyCoverage);
     NeighborhoodsRecord record = db.selectFrom(NEIGHBORHOODS).where(NEIGHBORHOODS.ID.eq(neighborhoodID)).fetchOne();
 
-    record.setCanopyCoverage(editCanopyCoverageRequest.getCanopyCoverage());
+    record.setCanopyCoverage(canopyCoverage);
 
     record.store();
   }
@@ -94,6 +90,18 @@ public class ProtectedNeighborhoodsProcessorImpl implements IProtectedNeighborho
   private void checkNeighborhoodExists(int neighborhoodId) {
     if (!db.fetchExists(db.selectFrom(NEIGHBORHOODS).where(NEIGHBORHOODS.ID.eq(neighborhoodId)))) {
       throw new ResourceDoesNotExistException(neighborhoodId, "Neighborhood");
+    }
+  }
+
+  /**
+   * Checks if the given canopyCoverage is valid.
+   * An invalid canopyCoverage is negative or greater than one.
+   *
+   * @param canopyCoverage to check
+   */
+  private void checkIfCanopyCoverageValid(Double canopyCoverage) {
+    if (canopyCoverage < 0 || canopyCoverage > 1) {
+      throw new MalformedParameterException("Given canopy coverage is not valid: " + canopyCoverage);
     }
   }
 }
