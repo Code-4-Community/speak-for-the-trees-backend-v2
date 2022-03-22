@@ -20,6 +20,7 @@ public class Emailer {
       PropertiesLoader.loadProperty("email_subject_password_reset_confirm");
   private final String subjectAccountDeleted =
       PropertiesLoader.loadProperty("email_subject_account_deleted");
+//  private final String subjectEmailNeighborhoods = PropertiesLoader.loadProperty("email_subject_email_neighborhoods");
 
   public Emailer() {
     String senderName = PropertiesLoader.loadProperty("email_sender_name");
@@ -104,5 +105,9 @@ public class Emailer {
     emailBody.ifPresent(
         s -> emailOperations.sendEmail(sendToName, sendToEmail, subjectAccountDeleted, s));
     // TODO implement this
+  }
+
+  public void sendNeighborhoodsEmail(String sendToEmail, String sendToName, String emailBody) {
+    emailOperations.sendEmail(sendToName, sendToEmail, "subjectEmailNeighborhoods", emailBody);
   }
 }
