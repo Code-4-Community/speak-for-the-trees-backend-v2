@@ -4,13 +4,7 @@ import static com.codeforcommunity.rest.ApiRouter.end;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
-import com.codeforcommunity.dto.site.AddSiteRequest;
-import com.codeforcommunity.dto.site.AddSitesRequest;
-import com.codeforcommunity.dto.site.AdoptedSitesResponse;
-import com.codeforcommunity.dto.site.EditSiteRequest;
-import com.codeforcommunity.dto.site.NameSiteEntryRequest;
-import com.codeforcommunity.dto.site.RecordStewardshipRequest;
-import com.codeforcommunity.dto.site.UpdateSiteRequest;
+import com.codeforcommunity.dto.site.*;
 import com.codeforcommunity.rest.IRouter;
 import com.codeforcommunity.rest.RestFunctions;
 import io.vertx.core.Vertx;
@@ -45,6 +39,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerAddSites(router);
     registerDeleteStewardship(router);
     registerNameSiteEntry(router);
+    registerUploadSiteImage(router);
 
     return router;
   }
@@ -225,6 +220,23 @@ public class ProtectedSiteRouter implements IRouter {
         RestFunctions.getJsonBodyAsClass(ctx, NameSiteEntryRequest.class);
 
     processor.nameSiteEntry(userData, siteId, nameSiteEntryRequest);
+
+    end(ctx.response(), 200);
+  }
+
+  private void registerUploadSiteImage(Router router) {
+    Route uploadImage = router.post("/:site_id/upload_image");
+    uploadImage.handler(this::handleUploadSiteImage);
+  }
+
+  private void handleUploadSiteImage(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+    int siteId = RestFunctions.getRequestParameterAsInt(ctx.request(), "site_id");
+
+    UploadSiteImageRequest uploadSiteImageRequest =
+            RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
+
+    processor.uploadSiteImage(userData, siteId, uploadSiteImageRequest);
 
     end(ctx.response(), 200);
   }

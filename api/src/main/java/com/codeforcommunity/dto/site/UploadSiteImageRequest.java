@@ -2,28 +2,31 @@ package com.codeforcommunity.dto.site;
 
 import com.codeforcommunity.dto.ApiDto;
 import com.codeforcommunity.exceptions.HandledException;
+
 import java.util.ArrayList;
 import java.util.List;
 
-public class NameSiteEntryRequest extends ApiDto {
-  private String name;
+public class UploadSiteImageRequest extends ApiDto {
+  private String image;
 
-  public String getName() {
-    return name;
+  public UploadSiteImageRequest(String image) {
+    this.image = image;
   }
 
-  public void setName(String name) {
-    this.name = name;
+  public String getImage() {
+    return image;
   }
 
   @Override
   public List<String> validateFields(String fieldPrefix) throws HandledException {
-    String fieldName = fieldPrefix + "new_site_entry_name_request.";
+    String fieldName = fieldPrefix + "upload_image_request.";
     List<String> fields = new ArrayList<>();
 
-    if (name == null || name.isEmpty() || name.length() > 60) {
-      fields.add(fieldName + "site_entry_name");
+    if (image == null) {
+      fields.add(fieldName + "image");
     }
+
     return fields;
   }
 }
+

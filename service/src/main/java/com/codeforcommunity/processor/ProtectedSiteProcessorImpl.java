@@ -11,18 +11,11 @@ import static org.jooq.impl.DSL.max;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
-import com.codeforcommunity.dto.site.AddSiteRequest;
-import com.codeforcommunity.dto.site.AddSitesRequest;
-import com.codeforcommunity.dto.site.AdoptedSitesResponse;
-import com.codeforcommunity.dto.site.EditSiteRequest;
-import com.codeforcommunity.dto.site.NameSiteEntryRequest;
-import com.codeforcommunity.dto.site.RecordStewardshipRequest;
-import com.codeforcommunity.dto.site.UpdateSiteRequest;
+import com.codeforcommunity.dto.site.*;
 import com.codeforcommunity.enums.PrivilegeLevel;
-import com.codeforcommunity.exceptions.AuthException;
-import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
-import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
-import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+import com.codeforcommunity.exceptions.*;
+
+import java.net.URL;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -401,5 +394,49 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
     siteEntry.setTreeName(nameSiteEntryRequest.getName());
     siteEntry.store();
+  }
+
+@Override
+  public void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
+    String image = uploadSiteImageRequest.getImage();
+    checkSiteExists(siteId);
+    if (!isSiteOwner(siteId, userData) && !isAdmin(userData.getPrivilegeLevel())) {
+      throw new AuthException(
+              "User needs to be an admin or the site's owner to upload the site's image.");
+    }
+    if (!this.isURLValid(image)) {
+      throw new InvalidURLException();
+    }
+
+    SiteEntriesRecord siteEntry = db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.ID.eq(siteId)).fetchOne();
+
+  if (siteEntry == null) {
+    throw new LinkedResourceDoesNotExistException("Site Entry",
+            userData.getUserId(),
+            "User",
+            siteId,
+            "Site");
+  }
+  siteEntry.setImage(image);
+  siteEntry.store();
+  }
+
+  private boolean isURLValid(String url) {
+    /* Try creating a valid URL */
+    try {
+      new URL(url).toURI();
+      return true;
+    }
+
+    // If there was an Exception
+    // while creating URL object
+    catch (Exception e) {
+      return false;
+    }
+  }
+
+  private boolean isSiteOwner(int siteID, JWTData userData) {
+    return db.fetchExists(db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.eq(siteID)).and
+            ((SITE_ENTRIES.USER_ID.eq(userData.getUserId()))));
   }
 }

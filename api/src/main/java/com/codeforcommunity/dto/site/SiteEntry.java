@@ -49,6 +49,7 @@ public class SiteEntry {
   private final String treeNotes;
   private final String siteNotes;
   private final String adopter;
+  private final String image;
 
   public SiteEntry(
       Integer id,
@@ -92,7 +93,8 @@ public class SiteEntry {
       Boolean stump,
       String treeNotes,
       String siteNotes,
-      String adopter) {
+      String adopter,
+      String image) {
     this.id = id;
     this.username = username;
     this.updatedAt = updatedAt;
@@ -135,6 +137,7 @@ public class SiteEntry {
     this.treeNotes = treeNotes;
     this.siteNotes = siteNotes;
     this.adopter = adopter;
+    this.image = image;
   }
 
   public Integer getId() {
@@ -303,5 +306,9 @@ public class SiteEntry {
 
   public String getAdopter() {
     return adopter;
+  }
+
+  public String getImage() {
+    return image;
   }
 }
