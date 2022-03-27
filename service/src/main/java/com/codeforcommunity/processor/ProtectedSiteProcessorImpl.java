@@ -408,17 +408,17 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
       throw new InvalidURLException();
     }
 
-    SiteEntriesRecord siteEntry = db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.ID.eq(siteId)).fetchOne();
+    SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
 
-  if (siteEntry == null) {
+  if (site == null) {
     throw new LinkedResourceDoesNotExistException("Site Entry",
             userData.getUserId(),
             "User",
             siteId,
             "Site");
   }
-  siteEntry.setImage(image);
-  siteEntry.store();
+  site.setPicture(image);
+  site.store();
   }
 
   private boolean isURLValid(String url) {
