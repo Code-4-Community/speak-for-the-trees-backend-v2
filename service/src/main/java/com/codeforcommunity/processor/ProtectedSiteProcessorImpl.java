@@ -229,7 +229,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     siteEntriesRecord.setCondition(addSiteRequest.getCondition());
     siteEntriesRecord.setDiscoloring(addSiteRequest.isDiscoloring());
     siteEntriesRecord.setLeaning(addSiteRequest.isLeaning());
-    siteEntriesRecord.setConstrictingGate(addSiteRequest.isConstrictingGate());
+    siteEntriesRecord.setConstrictingGrate(addSiteRequest.isConstrictingGrate());
     siteEntriesRecord.setWounds(addSiteRequest.isWounds());
     siteEntriesRecord.setPooling(addSiteRequest.isPooling());
     siteEntriesRecord.setStakesWithWires(addSiteRequest.isStakesWithWires());
@@ -257,7 +257,6 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     siteEntriesRecord.store();
   }
 
-  @Override
   public void updateSite(JWTData userData, int siteId, UpdateSiteRequest updateSiteRequest) {
     checkSiteExists(siteId);
 
@@ -283,7 +282,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     record.setCondition(updateSiteRequest.getCondition());
     record.setDiscoloring(updateSiteRequest.isDiscoloring());
     record.setLeaning(updateSiteRequest.isLeaning());
-    record.setConstrictingGate(updateSiteRequest.isConstrictingGate());
+    record.setConstrictingGrate(updateSiteRequest.isConstrictingGrate());
     record.setWounds(updateSiteRequest.isWounds());
     record.setPooling(updateSiteRequest.isPooling());
     record.setStakesWithWires(updateSiteRequest.isStakesWithWires());

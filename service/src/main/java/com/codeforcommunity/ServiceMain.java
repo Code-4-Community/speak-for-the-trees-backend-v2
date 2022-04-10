@@ -35,7 +35,11 @@ import com.codeforcommunity.processor.MapProcessorImpl;
 import com.codeforcommunity.processor.ProtectedNeighborhoodsProcessorImpl;
 import com.codeforcommunity.processor.ProtectedReportProcessorImpl;
 import com.codeforcommunity.processor.ProtectedSiteProcessorImpl;
+import com.codeforcommunity.processor.ProtectedNeighborhoodsProcessorImpl;
+import com.codeforcommunity.processor.ProtectedReportProcessorImpl;
+import com.codeforcommunity.processor.ProtectedSiteProcessorImpl;
 import com.codeforcommunity.processor.ProtectedUserProcessorImpl;
+import com.codeforcommunity.processor.ReportProcessorImpl;
 import com.codeforcommunity.processor.ReservationProcessorImpl;
 import com.codeforcommunity.processor.SiteProcessorImpl;
 import com.codeforcommunity.processor.TeamsProcessorImpl;
@@ -126,6 +130,10 @@ public class ServiceMain {
         new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
     IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc = new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
     IReportProcessor reportProc = new ReportProcessorImpl(this.db);
+    IProtectedReportProcessor protectedReportProc = new ProtectedReportProcessorImpl(this.db);
+    IReportProcessor reportProc = new ReportProcessorImpl(this.db);
+    IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc =
+        new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
 
     // Create the API router and start the HTTP server
     ApiRouter router =

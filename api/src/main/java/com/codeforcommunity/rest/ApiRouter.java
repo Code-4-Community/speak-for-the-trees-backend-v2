@@ -8,6 +8,7 @@ import com.codeforcommunity.api.IProtectedNeighborhoodsProcessor;
 import com.codeforcommunity.api.IProtectedReportProcessor;
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.api.IProtectedUserProcessor;
+import com.codeforcommunity.api.IReportProcessor;
 import com.codeforcommunity.api.IReservationProcessor;
 import com.codeforcommunity.api.ISiteProcessor;
 import com.codeforcommunity.api.ITeamsProcessor;
