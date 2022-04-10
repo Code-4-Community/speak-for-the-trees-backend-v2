@@ -27,22 +27,7 @@ import com.codeforcommunity.processor.ReportProcessorImpl;
 import com.codeforcommunity.processor.ReservationProcessorImpl;
 import com.codeforcommunity.processor.SiteProcessorImpl;
 import com.codeforcommunity.processor.TeamsProcessorImpl;
-import com.codeforcommunity.processor.*;
-import com.codeforcommunity.processor.AuthProcessorImpl;
-import com.codeforcommunity.processor.ImportProcessorImpl;
-import com.codeforcommunity.processor.LeaderboardProcessorImpl;
-import com.codeforcommunity.processor.MapProcessorImpl;
 import com.codeforcommunity.processor.ProtectedNeighborhoodsProcessorImpl;
-import com.codeforcommunity.processor.ProtectedReportProcessorImpl;
-import com.codeforcommunity.processor.ProtectedSiteProcessorImpl;
-import com.codeforcommunity.processor.ProtectedNeighborhoodsProcessorImpl;
-import com.codeforcommunity.processor.ProtectedReportProcessorImpl;
-import com.codeforcommunity.processor.ProtectedSiteProcessorImpl;
-import com.codeforcommunity.processor.ProtectedUserProcessorImpl;
-import com.codeforcommunity.processor.ReportProcessorImpl;
-import com.codeforcommunity.processor.ReservationProcessorImpl;
-import com.codeforcommunity.processor.SiteProcessorImpl;
-import com.codeforcommunity.processor.TeamsProcessorImpl;
 import com.codeforcommunity.propertiesLoader.PropertiesLoader;
 import com.codeforcommunity.requester.Emailer;
 import com.codeforcommunity.rest.ApiRouter;
@@ -124,12 +109,6 @@ public class ServiceMain {
     ITeamsProcessor teamsProc = new TeamsProcessorImpl(this.db);
     IProtectedSiteProcessor protectedSiteProc = new ProtectedSiteProcessorImpl(this.db);
     ISiteProcessor siteProc = new SiteProcessorImpl(this.db);
-    IProtectedReportProcessor protectedReportProc = new ProtectedReportProcessorImpl(this.db);
-    IReportProcessor reportProc = new ReportProcessorImpl(this.db);
-    IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc =
-        new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
-    IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc = new ProtectedNeighborhoodsProcessorImpl(this.db, emailer);
-    IReportProcessor reportProc = new ReportProcessorImpl(this.db);
     IProtectedReportProcessor protectedReportProc = new ProtectedReportProcessorImpl(this.db);
     IReportProcessor reportProc = new ReportProcessorImpl(this.db);
     IProtectedNeighborhoodsProcessor protectedNeighborhoodsProc =
