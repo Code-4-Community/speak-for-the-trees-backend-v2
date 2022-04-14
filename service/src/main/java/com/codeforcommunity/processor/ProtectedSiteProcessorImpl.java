@@ -387,7 +387,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
     SiteEntriesRecord siteEntry = db.selectFrom(SITE_ENTRIES)
         .where(SITE_ENTRIES.SITE_ID.eq(siteId))
-        .orderBy(SITE_ENTRIES.UPDATED_AT)
+        .orderBy(SITE_ENTRIES.UPDATED_AT.desc())
         .limit(1)
         .fetchOne();
 

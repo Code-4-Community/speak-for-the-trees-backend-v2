@@ -1,6 +1,8 @@
 package com.codeforcommunity.dto.site;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+
+import java.sql.Date;
 import java.sql.Timestamp;
 
 public class SiteEntry {
@@ -48,6 +50,11 @@ public class SiteEntry {
   private final Boolean stump;
   private final String treeNotes;
   private final String siteNotes;
+  private final String melneaCassTrees;
+  private final Integer mcbNumber;
+  private final String treeDedicatedTo;
+  private final Date plantingData;
+  private final String treeName;
   private final String adopter;
 
   public SiteEntry(
@@ -92,6 +99,11 @@ public class SiteEntry {
       Boolean stump,
       String treeNotes,
       String siteNotes,
+      String melneaCassTrees,
+      Integer mcbNumber,
+      String treeDedicatedTo,
+      Date plantingData,
+      String treeName,
       String adopter) {
     this.id = id;
     this.username = username;
@@ -134,6 +146,11 @@ public class SiteEntry {
     this.stump = stump;
     this.treeNotes = treeNotes;
     this.siteNotes = siteNotes;
+    this.melneaCassTrees = melneaCassTrees;
+    this.mcbNumber = mcbNumber;
+    this.treeDedicatedTo = treeDedicatedTo;
+    this.plantingData = plantingData;
+    this.treeName = treeName;
     this.adopter = adopter;
   }
 
@@ -299,6 +316,26 @@ public class SiteEntry {
 
   public String getSiteNotes() {
     return siteNotes;
+  }
+
+  public String getMelneaCassTrees() {
+    return melneaCassTrees;
+  }
+
+  public Integer getMcbNumber() {
+    return mcbNumber;
+  }
+
+  public String getTreeDedicatedTo() {
+    return treeDedicatedTo;
+  }
+
+  public Date getPlantingData() {
+    return plantingData;
+  }
+
+  public String getTreeName() {
+    return treeName;
   }
 
   public String getAdopter() {
