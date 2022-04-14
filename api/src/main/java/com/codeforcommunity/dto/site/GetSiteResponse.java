@@ -31,8 +31,8 @@ public class GetSiteResponse {
     this.city = city;
     this.zip = zip;
     this.address = address;
-    this.entries = entries;
     this.neighborhoodId = neighborhoodId;
+    this.entries = entries;
   }
 
   public Integer getSiteId() {
@@ -63,7 +63,7 @@ public class GetSiteResponse {
     return address;
   }
 
-  public Integer getNeighborhood() {
+  public Integer getNeighborhoodId() {
     return neighborhoodId;
   }
 

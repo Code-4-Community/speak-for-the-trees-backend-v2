@@ -53,7 +53,7 @@ public class SiteEntry {
   private final String melneaCassTrees;
   private final Integer mcbNumber;
   private final String treeDedicatedTo;
-  private final Date plantingData;
+  private final Date plantingDate;
   private final String treeName;
   private final String adopter;
 
@@ -102,7 +102,7 @@ public class SiteEntry {
       String melneaCassTrees,
       Integer mcbNumber,
       String treeDedicatedTo,
-      Date plantingData,
+      Date plantingDate,
       String treeName,
       String adopter) {
     this.id = id;
@@ -149,7 +149,7 @@ public class SiteEntry {
     this.melneaCassTrees = melneaCassTrees;
     this.mcbNumber = mcbNumber;
     this.treeDedicatedTo = treeDedicatedTo;
-    this.plantingData = plantingData;
+    this.plantingDate = plantingDate;
     this.treeName = treeName;
     this.adopter = adopter;
   }
@@ -330,8 +330,8 @@ public class SiteEntry {
     return treeDedicatedTo;
   }
 
-  public Date getPlantingData() {
-    return plantingData;
+  public Date getPlantingDate() {
+    return plantingDate;
   }
 
   public String getTreeName() {
