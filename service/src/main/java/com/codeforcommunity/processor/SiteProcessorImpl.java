@@ -118,10 +118,6 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getStump(),
                   record.getTreeNotes(),
                   record.getSiteNotes(),
-                  record.getMelneaCassTrees(),
-                  record.getMcbNumber(),
-                  record.getTreeDedicatedTo(),
-                  record.getPlantingDate(),
                   record.getTreeName(),
                   adopter);
 
