@@ -270,6 +270,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     siteEntriesRecord.setStump(addSiteRequest.isStump());
     siteEntriesRecord.setTreeNotes(addSiteRequest.getTreeNotes());
     siteEntriesRecord.setSiteNotes(addSiteRequest.getSiteNotes());
+    siteEntriesRecord.setPlantingDate(addSiteRequest.getPlantingDate());
 
     siteEntriesRecord.store();
   }

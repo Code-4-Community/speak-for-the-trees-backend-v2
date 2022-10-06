@@ -12,6 +12,7 @@ public class AddSiteRequest extends UpdateSiteRequest {
   private String zip;
   private String address;
   private Integer neighborhoodId;
+  private java.sql.Date plantingDate;
 
   public AddSiteRequest(
       Boolean treePresent,
@@ -58,7 +59,8 @@ public class AddSiteRequest extends UpdateSiteRequest {
       String city,
       String zip,
       String address,
-      Integer neighborhoodId) {
+      Integer neighborhoodId,
+      java.sql.Date plantingDate) {
     super(
         treePresent,
         status,
@@ -105,6 +107,7 @@ public class AddSiteRequest extends UpdateSiteRequest {
     this.zip = zip;
     this.address = address;
     this.neighborhoodId = neighborhoodId;
+    this.plantingDate = plantingDate;
   }
 
   public AddSiteRequest() {
@@ -165,6 +168,14 @@ public class AddSiteRequest extends UpdateSiteRequest {
 
   public void setNeighborhoodId(Integer neighborhoodId) {
     this.neighborhoodId = neighborhoodId;
+  }
+
+  public java.sql.Date getPlantingDate() {
+    return this.plantingDate;
+  }
+
+  public void setPlantingDate(java.sql.Date plantingDate) {
+    this.plantingDate = plantingDate;
   }
 
   @Override
