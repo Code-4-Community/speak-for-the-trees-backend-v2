@@ -15,6 +15,7 @@ import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
+import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
@@ -72,6 +73,17 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   private void checkNeighborhoodExists(int neighborhoodId) {
     if (!db.fetchExists(db.selectFrom(NEIGHBORHOODS).where(NEIGHBORHOODS.ID.eq(neighborhoodId)))) {
       throw new ResourceDoesNotExistException(neighborhoodId, "Neighborhood");
+    }
+  }
+
+  /**
+   * Check if a stewardship record exists.
+   *
+   * @param activityId to check
+   */
+  private void checkStewardshipExists(int activityId) {
+    if (!db.fetchExists(db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)))) {
+      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
     }
   }
 
@@ -351,13 +363,34 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     site.store();
   }
 
-  public void deleteStewardship(JWTData userData, int activityId) {
+  @Override
+  public void editStewardship(JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest) {
+    checkStewardshipExists(activityId);
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
 
-    if (activity == null) {
-      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    if (!(activity.getUserId().equals(userData.getUserId())
+        || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
+        || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {
+      throw new AuthException(
+          "User needs to be an admin or the activity's author to edit the record.");
     }
+
+    activity.setId(activityId);
+    activity.setPerformedOn(editStewardshipRequest.getDate());
+    activity.setWatered(editStewardshipRequest.getWatered());
+    activity.setMulched(editStewardshipRequest.getMulched());
+    activity.setCleaned(editStewardshipRequest.getCleaned());
+    activity.setWeeded(editStewardshipRequest.getWeeded());
+
+    activity.store();
+  }
+
+  public void deleteStewardship(JWTData userData, int activityId) {
+    checkStewardshipExists(activityId);
+    StewardshipRecord activity =
+        db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
+
     if (!(activity.getUserId().equals(userData.getUserId())
         || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
         || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {

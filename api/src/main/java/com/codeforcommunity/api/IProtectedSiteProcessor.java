@@ -31,7 +31,7 @@ public interface IProtectedSiteProcessor {
   void recordStewardship(
       JWTData userData, int siteId, RecordStewardshipRequest recordStewardshipRequest);
 
-  /** Edits the given stewardship activity */
+  /** Edit features of the given stewardship activity */
   void editStewardship(
       JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest);
 
