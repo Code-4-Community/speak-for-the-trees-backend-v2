@@ -45,6 +45,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerEditSite(router);
     registerAddSites(router);
     registerDeleteStewardship(router);
+    registerEditStewardship(router);
     registerNameSiteEntry(router);
 
     return router;
