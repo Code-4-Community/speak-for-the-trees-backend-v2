@@ -376,7 +376,6 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
           "User needs to be an admin or the activity's author to edit the record.");
     }
 
-    activity.setId(activityId);
     activity.setPerformedOn(editStewardshipRequest.getDate());
     activity.setWatered(editStewardshipRequest.getWatered());
     activity.setMulched(editStewardshipRequest.getMulched());

@@ -10,10 +10,10 @@ public class RecordStewardshipRequest extends ApiDto {
   @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "MM/dd/yyyy", timezone = "America/New_York")
   private java.sql.Date date;
 
-  private boolean watered;
-  private boolean mulched;
-  private boolean cleaned;
-  private boolean weeded;
+  protected boolean watered;
+  protected boolean mulched;
+  protected boolean cleaned;
+  protected boolean weeded;
 
   public RecordStewardshipRequest(
       java.sql.Date date, boolean watered, boolean mulched, boolean cleaned, boolean weeded) {
@@ -24,7 +24,7 @@ public class RecordStewardshipRequest extends ApiDto {
     this.weeded = weeded;
   }
 
-  private RecordStewardshipRequest() {}
+  protected RecordStewardshipRequest() {}
 
   public java.sql.Date getDate() {
     return date;
