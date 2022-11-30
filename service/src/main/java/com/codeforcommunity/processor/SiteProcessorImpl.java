@@ -74,9 +74,9 @@ public class SiteProcessorImpl implements ISiteProcessor {
                     .value1();
           }
 
-          SiteEntry siteEntry = // id, site_id start
+          SiteEntry siteEntry =
               new SiteEntry(
-                      siteId,
+                  record.getId(),
                   username,
                   record.getUpdatedAt(),
                   record.getTreePresent(),
@@ -85,9 +85,9 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getSpecies(),
                   record.getCommonName(),
                   record.getConfidence(),
-                      record.getDiameter(),
+                  record.getDiameter(),
                   record.getCircumference(),
-                      record.getMultistem(),
+                  record.getMultistem(),
                   record.getCoverage(),
                   record.getPruning(),
                   record.getCondition(),
@@ -117,7 +117,7 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getStump(),
                   record.getTreeNotes(),
                   record.getSiteNotes(),
-                      adopter);
+                  adopter);
 
           siteEntries.add(siteEntry);
         });

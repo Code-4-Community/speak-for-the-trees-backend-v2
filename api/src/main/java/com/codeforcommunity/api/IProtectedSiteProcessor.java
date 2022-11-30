@@ -70,8 +70,7 @@ public interface IProtectedSiteProcessor {
    * Used to update the image of a site. The `image` field of the most recent entry in the
    * `site_entries` table associated with the specified site will be updated. Only users who are
    * owners of the specified site, Admins, or Super Admins can perform this action. If the given URL
-   * is NULL, any pre-existing site image for the specified site will be deleted. uploads the site
-   * image
+   * is NULL, any pre-existing site image for the specified site will be deleted
    */
   void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest);
 }

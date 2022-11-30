@@ -469,7 +469,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     siteEntry.store();
   }
 
-@Override
+  @Override
   public void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
     String image = uploadSiteImageRequest.getImage();
     checkSiteExists(siteId);

@@ -17,6 +17,10 @@ public class UploadSiteImageRequest extends ApiDto {
     return image;
   }
 
+  public void setImage(String image) {
+    this.image = image;
+  }
+
   @Override
   public List<String> validateFields(String fieldPrefix) throws HandledException {
     String fieldName = fieldPrefix + "upload_image_request.";
