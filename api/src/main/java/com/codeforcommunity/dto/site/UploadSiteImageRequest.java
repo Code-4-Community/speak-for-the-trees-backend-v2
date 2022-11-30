@@ -13,6 +13,8 @@ public class UploadSiteImageRequest extends ApiDto {
     this.image = image;
   }
 
+  public UploadSiteImageRequest() {}
+
   public String getImage() {
     return image;
   }
@@ -26,11 +28,10 @@ public class UploadSiteImageRequest extends ApiDto {
     String fieldName = fieldPrefix + "upload_image_request.";
     List<String> fields = new ArrayList<>();
 
-    if (image == null) {
+    if (image != null && urlInvalid(image)) {
       fields.add(fieldName + "image");
     }
 
     return fields;
   }
 }
-

@@ -24,12 +24,10 @@ import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
-import com.codeforcommunity.exceptions.InvalidURLException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
 
-import java.net.URL;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -80,6 +78,20 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   private void checkNeighborhoodExists(int neighborhoodId) {
     if (!db.fetchExists(db.selectFrom(NEIGHBORHOODS).where(NEIGHBORHOODS.ID.eq(neighborhoodId)))) {
       throw new ResourceDoesNotExistException(neighborhoodId, "Neighborhood");
+    }
+  }
+
+  /**
+   * Check if the user is an admin or the adopter of the site with the given siteId
+   *
+   * @param userData the user's data
+   * @param siteId   the ID of the site to check
+   * @throws AuthException if the user is not an admin or the site's adopter
+   */
+  private void checkAdminOrSiteAdopter(JWTData userData, int siteId) throws AuthException {
+    if (!(isAdmin(userData.getPrivilegeLevel())
+          || isAlreadyAdoptedByUser(userData.getUserId(), siteId))) {
+      throw new AuthException("User needs to be an admin or the site's adopter.");
     }
   }
 
@@ -471,45 +483,13 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   @Override
   public void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
-    String image = uploadSiteImageRequest.getImage();
     checkSiteExists(siteId);
-    if (!isSiteOwner(siteId, userData) && !isAdmin(userData.getPrivilegeLevel())) {
-      throw new AuthException(
-              "User needs to be an admin or the site's owner to upload the site's image.");
-    }
-    if (!this.isURLValid(image)) {
-      throw new InvalidURLException();
-    }
+    checkAdminOrSiteAdopter(userData, siteId);
 
     SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
 
-  if (site == null) {
-    throw new LinkedResourceDoesNotExistException("Site Entry",
-            userData.getUserId(),
-            "User",
-            siteId,
-            "Site");
-  }
-  site.setPicture(image);
-  site.store();
-  }
+    site.setPicture(uploadSiteImageRequest.getImage());
 
-  private boolean isURLValid(String url) {
-    /* Try creating a valid URL */
-    try {
-      new URL(url).toURI();
-      return true;
-    }
-
-    // If there was an Exception
-    // while creating URL object
-    catch (Exception e) {
-      return false;
-    }
-  }
-
-  private boolean isSiteOwner(int siteID, JWTData userData) {
-    return db.fetchExists(db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.eq(siteID)).and
-            ((SITE_ENTRIES.USER_ID.eq(userData.getUserId()))));
+    site.store();
   }
 }
