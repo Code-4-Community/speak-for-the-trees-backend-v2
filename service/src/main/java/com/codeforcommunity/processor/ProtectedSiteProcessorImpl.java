@@ -114,6 +114,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   private boolean isAdminOrOwner(JWTData userData, Integer ownerId) {
     return isAdmin(userData.getPrivilegeLevel()) || userData.getUserId().equals(ownerId);
+  }
 
   /**
    * Throws an exception if the user account is not the parent of the other user account.

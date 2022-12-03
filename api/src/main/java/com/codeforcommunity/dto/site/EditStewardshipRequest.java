@@ -2,7 +2,6 @@ package com.codeforcommunity.dto.site;
 
 import com.codeforcommunity.exceptions.HandledException;
 import java.sql.Date;
-import java.util.ArrayList;
 import java.util.List;
 
 public class EditStewardshipRequest extends RecordStewardshipRequest {
