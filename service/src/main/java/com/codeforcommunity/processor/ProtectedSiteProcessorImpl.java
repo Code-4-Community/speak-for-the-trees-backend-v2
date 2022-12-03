@@ -108,6 +108,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     return level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN);
   }
 
+  private boolean isAdminOrOwner(JWTData userData, Integer ownerId) {
+    return isAdmin(userData.getPrivilegeLevel()) || userData.getUserId().equals(ownerId);
+  }
+
   @Override
   public void adoptSite(JWTData userData, int siteId, Date dateAdopted) {
     checkSiteExists(siteId);
@@ -369,9 +373,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
 
-    if (!(activity.getUserId().equals(userData.getUserId())
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
       throw new AuthException(
           "User needs to be an admin or the activity's author to edit the record.");
     }
@@ -390,9 +392,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
 
-    if (!(activity.getUserId().equals(userData.getUserId())
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
       throw new AuthException(
           "User needs to be an admin or the activity's author to delete the record.");
     }
