@@ -16,6 +16,7 @@ import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
+import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
@@ -82,6 +83,17 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   /**
+   * Check if a stewardship record exists.
+   *
+   * @param activityId to check
+   */
+  private void checkStewardshipExists(int activityId) {
+    if (!db.fetchExists(db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)))) {
+      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    }
+  }
+
+  /**
    * Check if the user is an admin or the adopter of the site with the given siteId
    *
    * @param userData the user's data
@@ -90,7 +102,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    */
   private void checkAdminOrSiteAdopter(JWTData userData, int siteId) throws AuthException {
     if (!(isAdmin(userData.getPrivilegeLevel())
-          || isAlreadyAdoptedByUser(userData.getUserId(), siteId))) {
+        || isAlreadyAdoptedByUser(userData.getUserId(), siteId))) {
       throw new AuthException("User needs to be an admin or the site's adopter.");
     }
   }
@@ -114,6 +126,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    */
   boolean isAdmin(PrivilegeLevel level) {
     return level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN);
+  }
+
+  private boolean isAdminOrOwner(JWTData userData, Integer ownerId) {
+    return isAdmin(userData.getPrivilegeLevel()) || userData.getUserId().equals(ownerId);
   }
 
   /**
@@ -441,16 +457,32 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     site.store();
   }
 
-  public void deleteStewardship(JWTData userData, int activityId) {
+  @Override
+  public void editStewardship(JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest) {
+    checkStewardshipExists(activityId);
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
 
-    if (activity == null) {
-      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
+      throw new AuthException(
+          "User needs to be an admin or the activity's author to edit the record.");
     }
-    if (!(activity.getUserId().equals(userData.getUserId())
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {
+
+    activity.setPerformedOn(editStewardshipRequest.getDate());
+    activity.setWatered(editStewardshipRequest.getWatered());
+    activity.setMulched(editStewardshipRequest.getMulched());
+    activity.setCleaned(editStewardshipRequest.getCleaned());
+    activity.setWeeded(editStewardshipRequest.getWeeded());
+
+    activity.store();
+  }
+
+  public void deleteStewardship(JWTData userData, int activityId) {
+    checkStewardshipExists(activityId);
+    StewardshipRecord activity =
+        db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
+
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
       throw new AuthException(
           "User needs to be an admin or the activity's author to delete the record.");
     }
