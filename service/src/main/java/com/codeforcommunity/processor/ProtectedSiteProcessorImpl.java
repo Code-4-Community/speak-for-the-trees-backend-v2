@@ -507,7 +507,12 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
           "Site Entry", userData.getUserId(), "User", siteId, "Site");
     }
 
-    siteEntry.setTreeName(nameSiteEntryRequest.getName());
+    if (nameSiteEntryRequest.getName().isEmpty()) {
+      siteEntry.setTreeName(null);
+    }
+    else {
+      siteEntry.setTreeName(nameSiteEntryRequest.getName());
+    }
     siteEntry.store();
   }
 
