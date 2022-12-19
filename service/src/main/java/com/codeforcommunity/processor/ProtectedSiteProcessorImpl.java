@@ -3,10 +3,11 @@ package com.codeforcommunity.processor;
 import static org.jooq.generated.Tables.ADOPTED_SITES;
 import static org.jooq.generated.Tables.BLOCKS;
 import static org.jooq.generated.Tables.NEIGHBORHOODS;
+import static org.jooq.generated.Tables.PARENT_ACCOUNTS;
 import static org.jooq.generated.Tables.SITES;
-import static org.jooq.generated.Tables.USERS;
 import static org.jooq.generated.Tables.SITE_ENTRIES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
+import static org.jooq.generated.Tables.USERS;
 import static org.jooq.impl.DSL.max;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
@@ -15,27 +16,32 @@ import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
+import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
+import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
+import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
+import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
 import org.jooq.DSLContext;
-import org.jooq.Field;
-import org.jooq.Record1;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
+import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
 import org.jooq.generated.tables.records.SitesRecord;
-import org.jooq.generated.tables.records.UsersRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
+import org.jooq.generated.tables.records.UsersRecord;
 
-public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
+public class ProtectedSiteProcessorImpl extends AbstractProcessor
+    implements IProtectedSiteProcessor {
 
   private final DSLContext db;
 
@@ -76,6 +82,31 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     }
   }
 
+  /**
+   * Check if a stewardship record exists.
+   *
+   * @param activityId to check
+   */
+  private void checkStewardshipExists(int activityId) {
+    if (!db.fetchExists(db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)))) {
+      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    }
+  }
+
+  /**
+   * Check if the user is an admin or the adopter of the site with the given siteId
+   *
+   * @param userData the user's data
+   * @param siteId   the ID of the site to check
+   * @throws AuthException if the user is not an admin or the site's adopter
+   */
+  private void checkAdminOrSiteAdopter(JWTData userData, int siteId) throws AuthException {
+    if (!(isAdmin(userData.getPrivilegeLevel())
+        || isAlreadyAdoptedByUser(userData.getUserId(), siteId))) {
+      throw new AuthException("User needs to be an admin or the site's adopter.");
+    }
+  }
+
   private Boolean isAlreadyAdopted(int siteId) {
     return db.fetchExists(db.selectFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)));
   }
@@ -88,17 +119,6 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
   }
 
   /**
-   * Throws an exception if the user is not an admin or super admin.
-   *
-   * @param level the privilege level of the user calling the route
-   */
-  void isAdminCheck(PrivilegeLevel level) {
-    if (!isAdmin(level)) {
-      throw new AuthException("User does not have the required privilege level.");
-    }
-  }
-
-  /**
    * Is the user an admin or super admin.
    *
    * @param level the privilege level of the user calling the route
@@ -106,6 +126,56 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
    */
   boolean isAdmin(PrivilegeLevel level) {
     return level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN);
+  }
+
+  private boolean isAdminOrOwner(JWTData userData, Integer ownerId) {
+    return isAdmin(userData.getPrivilegeLevel()) || userData.getUserId().equals(ownerId);
+  }
+
+  /**
+   * Throws an exception if the user account is not the parent of the other user account.
+   *
+   * @param parentUserId the user id of the parent account
+   * @param childUserId the user id of the child account
+   */
+  void checkParent(int parentUserId, int childUserId) {
+    if (!isParent(parentUserId, childUserId)) {
+      throw new LinkedResourceDoesNotExistException("Parent->Child",
+          parentUserId,
+          "Parent User",
+          childUserId,
+          "Child User");
+    }
+  }
+
+  /**
+   * Determines if a user account is the parent of another user account.
+   *
+   * @param parentUserId the user id of the parent account
+   * @param childUserId the user if of the child account
+   * @return true if the user is a parent of the other user, else false
+   */
+  boolean isParent(int parentUserId, int childUserId) {
+    ParentAccountsRecord parentAccountsRecord = db.selectFrom(PARENT_ACCOUNTS)
+        .where(PARENT_ACCOUNTS.PARENT_ID.eq(parentUserId))
+        .and(PARENT_ACCOUNTS.CHILD_ID.eq(childUserId))
+        .fetchOne();
+    return parentAccountsRecord != null;
+  }
+
+  /**
+   * Gets the JWTData of the user with the given userId.
+   *
+   * @param userId user id of the user to get JWTData for
+   * @return JWTData of the user
+   */
+  private JWTData getUserData(int userId) {
+    UsersRecord user = db.selectFrom(USERS)
+        .where(USERS.ID.eq(userId))
+        .fetchOne();
+    PrivilegeLevel userPrivilegeLevel = user.getPrivilegeLevel();
+
+    return new JWTData(userId, userPrivilegeLevel);
   }
 
   @Override
@@ -137,30 +207,40 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
   @Override
   public void forceUnadoptSite(JWTData userData, int siteId) {
-    isAdminCheck(userData.getPrivilegeLevel());
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkSiteExists(siteId);
     if (!isAlreadyAdopted(siteId)) {
       throw new WrongAdoptionStatusException(false);
     }
 
-    AdoptedSitesRecord adoptedSite = db.selectFrom(ADOPTED_SITES)
+    AdoptedSitesRecord adoptedSite =
+        db.selectFrom(ADOPTED_SITES)
             .where(ADOPTED_SITES.SITE_ID.eq(siteId))
             .fetchInto(AdoptedSitesRecord.class)
             .get(0);
 
     Integer adopterId = adoptedSite.getUserId();
 
-    UsersRecord adopter = db.selectFrom(USERS)
-            .where(USERS.ID.eq(adopterId))
-            .fetchOne();
+    UsersRecord adopter = db.selectFrom(USERS).where(USERS.ID.eq(adopterId)).fetchOne();
 
-    if(isAdmin(adopter.getPrivilegeLevel()) && !(userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN))) {
+    if (isAdmin(adopter.getPrivilegeLevel())
+        && !(userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN))) {
       throw new AuthException("User does not have the required privilege level.");
     }
 
-    db.deleteFrom(ADOPTED_SITES)
-            .where(ADOPTED_SITES.SITE_ID.eq(siteId))
-            .execute();
+    db.deleteFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)).execute();
+  }
+
+  @Override
+  public void parentAdoptSite(
+      JWTData parentUserData, int siteId, ParentAdoptSiteRequest parentAdoptSiteRequest, Date dateAdopted) {
+    Integer parentId = parentUserData.getUserId();
+    Integer childId = parentAdoptSiteRequest.getChildUserId();
+    checkParent(parentId, childId);
+
+    JWTData childUserData = getUserData(childId);
+
+    adoptSite(childUserData, siteId, dateAdopted);
   }
 
   @Override
@@ -194,6 +274,18 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
   }
 
   @Override
+  public void parentRecordStewardship(
+      JWTData parentUserData, int siteId, ParentRecordStewardshipRequest parentRecordStewardshipRequest) {
+    Integer parentId = parentUserData.getUserId();
+    Integer childId = parentRecordStewardshipRequest.getChildUserId();
+    checkParent(parentId, childId);
+
+    JWTData childUserData = getUserData(childId);
+
+    recordStewardship(childUserData, siteId, parentRecordStewardshipRequest);
+  }
+
+                                      @Override
   public void addSite(JWTData userData, AddSiteRequest addSiteRequest) {
     if (addSiteRequest.getBlockId() != null) {
       checkBlockExists(addSiteRequest.getBlockId());
@@ -218,6 +310,10 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
     SiteEntriesRecord siteEntriesRecord = db.newRecord(SITE_ENTRIES);
 
+    int newSiteEntriesId =
+        db.select(max(SITE_ENTRIES.ID)).from(SITE_ENTRIES).fetchOne(0, Integer.class) + 1;
+
+    siteEntriesRecord.setId(newSiteEntriesId);
     siteEntriesRecord.setUserId(userData.getUserId());
     siteEntriesRecord.setSiteId(sitesRecord.getId());
     siteEntriesRecord.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
@@ -318,7 +414,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
   @Override
   public void editSite(JWTData userData, int siteId, EditSiteRequest editSiteRequest) {
-    isAdminCheck(userData.getPrivilegeLevel());
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkSiteExists(siteId);
     if (editSiteRequest.getBlockId() != null) {
       checkBlockExists(editSiteRequest.getBlockId());
@@ -341,8 +437,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
   @Override
   public void addSites(JWTData userData, AddSitesRequest addSitesRequest) {
-
-    isAdminCheck(userData.getPrivilegeLevel());
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
     addSitesRequest
         .getSites()
@@ -354,7 +449,7 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
 
   @Override
   public void deleteSite(JWTData userData, int siteId) {
-    isAdminCheck(userData.getPrivilegeLevel());
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkSiteExists(siteId);
 
     SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
@@ -362,16 +457,32 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     site.store();
   }
 
-  public void deleteStewardship(JWTData userData, int activityId) {
+  @Override
+  public void editStewardship(JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest) {
+    checkStewardshipExists(activityId);
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
 
-    if (activity == null) {
-      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
+      throw new AuthException(
+          "User needs to be an admin or the activity's author to edit the record.");
     }
-    if (!(activity.getUserId().equals(userData.getUserId())
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {
+
+    activity.setPerformedOn(editStewardshipRequest.getDate());
+    activity.setWatered(editStewardshipRequest.getWatered());
+    activity.setMulched(editStewardshipRequest.getMulched());
+    activity.setCleaned(editStewardshipRequest.getCleaned());
+    activity.setWeeded(editStewardshipRequest.getWeeded());
+
+    activity.store();
+  }
+
+  public void deleteStewardship(JWTData userData, int activityId) {
+    checkStewardshipExists(activityId);
+    StewardshipRecord activity =
+        db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
+
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
       throw new AuthException(
           "User needs to be an admin or the activity's author to delete the record.");
     }
@@ -379,7 +490,8 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     db.deleteFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).execute();
   }
 
-  public void nameSiteEntry(JWTData userData, int siteId, NameSiteEntryRequest nameSiteEntryRequest) {
+  public void nameSiteEntry(
+      JWTData userData, int siteId, NameSiteEntryRequest nameSiteEntryRequest) {
     checkSiteExists(siteId);
     if (!isAlreadyAdoptedByUser(userData.getUserId(), siteId)) {
       throw new AuthException("User is not the site's adopter.");
@@ -388,18 +500,26 @@ public class ProtectedSiteProcessorImpl implements IProtectedSiteProcessor {
     SiteEntriesRecord siteEntry = db.selectFrom(SITE_ENTRIES)
         .where(SITE_ENTRIES.SITE_ID.eq(siteId))
         .orderBy(SITE_ENTRIES.UPDATED_AT.desc())
-        .limit(1)
         .fetchOne();
 
     if (siteEntry == null) {
-      throw new LinkedResourceDoesNotExistException("Site Entry",
-                                                    userData.getUserId(),
-                                                    "User",
-                                                    siteId,
-                                                    "Site");
+      throw new LinkedResourceDoesNotExistException(
+          "Site Entry", userData.getUserId(), "User", siteId, "Site");
     }
 
     siteEntry.setTreeName(nameSiteEntryRequest.getName());
     siteEntry.store();
+  }
+
+  @Override
+  public void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
+    checkSiteExists(siteId);
+    checkAdminOrSiteAdopter(userData, siteId);
+
+    SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
+
+    site.setPicture(uploadSiteImageRequest.getImage());
+
+    site.store();
   }
 }

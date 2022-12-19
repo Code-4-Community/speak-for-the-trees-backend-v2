@@ -102,14 +102,16 @@ public class FailureHandler {
     end(ctx, message, 400);
   }
 
-  public void handleLinkedResourceDoesNotExist(RoutingContext ctx, LinkedResourceDoesNotExistException e) {
+  public void handleLinkedResourceDoesNotExist(
+      RoutingContext ctx, LinkedResourceDoesNotExistException e) {
     String message =
-        String.format("No linked resource <%s> with resource <%s> of id <%d> and resource <%s> of id <%d> exists",
-                      e.getlinkedResourceType(),
-                      e.getResource1Type(),
-                      e.getResource1Id(),
-                      e.getResource2Type(),
-                      e.getResource2Id());
+        String.format(
+            "No linked resource <%s> with resource <%s> of id <%d> and resource <%s> of id <%d> exists",
+            e.getlinkedResourceType(),
+            e.getResource1Type(),
+            e.getResource1Id(),
+            e.getResource2Type(),
+            e.getResource2Id());
     end(ctx, message, 400);
   }
 
@@ -173,6 +175,11 @@ public class FailureHandler {
 
   public void handleInvalidToken(RoutingContext ctx) {
     String message = "Given token is invalid";
+    end(ctx, message, 401);
+  }
+
+  public void handleInvalidURL(RoutingContext ctx) {
+    String message = "Given URL is invalid";
     end(ctx, message, 401);
   }
 
