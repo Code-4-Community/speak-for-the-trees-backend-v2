@@ -507,10 +507,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
     if (nameSiteEntryRequest.getName().isEmpty()) {
       siteEntry.setTreeName(null);
-    }
-    else {
+    } else {
       siteEntry.setTreeName(nameSiteEntryRequest.getName());
     }
+
     siteEntry.store();
   }
 
