@@ -159,8 +159,6 @@ public class SiteProcessorImpl implements ISiteProcessor {
 
     records.forEach(
         record -> {
-          logger.info("Stewardship activity recorded on: " + record.getPerformedOn());
-
           StewardshipActivity stewardshipActivity =
               new StewardshipActivity(
                   record.getId(),
@@ -171,6 +169,8 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getCleaned(),
                   record.getWeeded());
           activities.add(stewardshipActivity);
+
+          logger.info("Stewardship recorded on: " + stewardshipActivity.getDate());
         });
 
     return new StewardshipActivitiesResponse(activities);
