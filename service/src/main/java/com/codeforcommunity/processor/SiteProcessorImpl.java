@@ -13,6 +13,7 @@ import com.codeforcommunity.dto.site.SiteEntry;
 import com.codeforcommunity.dto.site.StewardshipActivitiesResponse;
 import com.codeforcommunity.dto.site.StewardshipActivity;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
+import com.codeforcommunity.logger.SLogger;
 import java.util.ArrayList;
 import java.util.List;
 import org.jooq.DSLContext;
@@ -22,6 +23,8 @@ import org.jooq.generated.tables.records.SitesRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
 
 public class SiteProcessorImpl implements ISiteProcessor {
+
+  private final SLogger logger = new SLogger(SiteProcessorImpl.class);
 
   private final DSLContext db;
 
@@ -117,6 +120,7 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getStump(),
                   record.getTreeNotes(),
                   record.getSiteNotes(),
+                  record.getTreeName(),
                   adopter);
 
           siteEntries.add(siteEntry);
@@ -156,6 +160,8 @@ public class SiteProcessorImpl implements ISiteProcessor {
 
     records.forEach(
         record -> {
+          logger.info("Stewardship activity recorded on: " + record.getPerformedOn());
+
           StewardshipActivity stewardshipActivity =
               new StewardshipActivity(
                   record.getId(),
@@ -166,6 +172,8 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getCleaned(),
                   record.getWeeded());
           activities.add(stewardshipActivity);
+
+          logger.info("Stewardship recorded on: " + stewardshipActivity.getDate());
         });
 
     return new StewardshipActivitiesResponse(activities);
