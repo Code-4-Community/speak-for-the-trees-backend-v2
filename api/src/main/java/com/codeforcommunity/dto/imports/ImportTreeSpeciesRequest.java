@@ -32,7 +32,7 @@ public class ImportTreeSpeciesRequest extends ApiDto {
     }
 
     return treeSpecies.stream()
-        .flatMap(ni -> ni.validateFields(newFieldPrefix).stream())
+        .flatMap(treeSpeciesImport -> treeSpeciesImport.validateFields(newFieldPrefix).stream())
         .collect(Collectors.toList());
   }
 }

@@ -32,7 +32,7 @@ public class ImportTreeBenefitsRequest extends ApiDto {
     }
 
     return treeBenefits.stream()
-        .flatMap(ni -> ni.validateFields(newFieldPrefix).stream())
+        .flatMap(treeBenefitImport -> treeBenefitImport.validateFields(newFieldPrefix).stream())
         .collect(Collectors.toList());
   }
 }
