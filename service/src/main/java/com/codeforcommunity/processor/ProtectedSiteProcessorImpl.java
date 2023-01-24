@@ -464,9 +464,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       MappingIterator<AddSiteRequest> sitesIterator =
           mapper.readerFor(AddSiteRequest.class).with(schema).readValues(sitesCSV);
       List<AddSiteRequest> addSiteRequests = sitesIterator.readAll();
-      for (AddSiteRequest addSiteRequest : addSiteRequests) {
-        addSiteRequest.validate();
-      }
+      addSiteRequests.forEach(siteRequest -> siteRequest.validate());
       return addSiteRequests;
     } catch (HandledException | IOException e) {
       throw new InvalidCSVException();
