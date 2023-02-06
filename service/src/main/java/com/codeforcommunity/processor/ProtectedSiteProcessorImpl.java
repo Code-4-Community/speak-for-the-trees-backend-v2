@@ -3,6 +3,7 @@ package com.codeforcommunity.processor;
 import static org.jooq.generated.Tables.ADOPTED_SITES;
 import static org.jooq.generated.Tables.BLOCKS;
 import static org.jooq.generated.Tables.NEIGHBORHOODS;
+import static org.jooq.generated.Tables.PARENT_ACCOUNTS;
 import static org.jooq.generated.Tables.SITES;
 import static org.jooq.generated.Tables.SITE_ENTRIES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
@@ -11,35 +12,28 @@ import static org.jooq.impl.DSL.max;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
-import com.codeforcommunity.dto.auth.User;
 import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
+import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
+import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
+import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
+import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
-import com.codeforcommunity.requester.Emailer;
-import io.vertx.core.Vertx;
 import java.sql.Date;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 import org.jooq.DSLContext;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
+import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
 import org.jooq.generated.tables.records.SitesRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
@@ -49,18 +43,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     implements IProtectedSiteProcessor {
 
   private final DSLContext db;
-  private final Emailer emailer;
-  private static final int INACTIVITY_PERIOD = 21;
 
-  public ProtectedSiteProcessorImpl(DSLContext db, Emailer emailer) {
+  public ProtectedSiteProcessorImpl(DSLContext db) {
     this.db = db;
-    this.emailer = emailer;
-
-    Vertx vertx = Vertx.vertx();
-    long timerId =
-        vertx.setPeriodic(
-            TimeUnit.DAYS.toMillis(INACTIVITY_PERIOD),
-            id -> this.emailInactiveUsers());
   }
 
   /**
@@ -96,6 +81,31 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     }
   }
 
+  /**
+   * Check if a stewardship record exists.
+   *
+   * @param activityId to check
+   */
+  private void checkStewardshipExists(int activityId) {
+    if (!db.fetchExists(db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)))) {
+      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    }
+  }
+
+  /**
+   * Check if the user is an admin or the adopter of the site with the given siteId
+   *
+   * @param userData the user's data
+   * @param siteId the ID of the site to check
+   * @throws AuthException if the user is not an admin or the site's adopter
+   */
+  private void checkAdminOrSiteAdopter(JWTData userData, int siteId) throws AuthException {
+    if (!(isAdmin(userData.getPrivilegeLevel())
+        || isAlreadyAdoptedByUser(userData.getUserId(), siteId))) {
+      throw new AuthException("User needs to be an admin or the site's adopter.");
+    }
+  }
+
   private Boolean isAlreadyAdopted(int siteId) {
     return db.fetchExists(db.selectFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)));
   }
@@ -115,6 +125,52 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    */
   boolean isAdmin(PrivilegeLevel level) {
     return level.equals(PrivilegeLevel.ADMIN) || level.equals(PrivilegeLevel.SUPER_ADMIN);
+  }
+
+  private boolean isAdminOrOwner(JWTData userData, Integer ownerId) {
+    return isAdmin(userData.getPrivilegeLevel()) || userData.getUserId().equals(ownerId);
+  }
+
+  /**
+   * Throws an exception if the user account is not the parent of the other user account.
+   *
+   * @param parentUserId the user id of the parent account
+   * @param childUserId the user id of the child account
+   */
+  void checkParent(int parentUserId, int childUserId) {
+    if (!isParent(parentUserId, childUserId)) {
+      throw new LinkedResourceDoesNotExistException(
+          "Parent->Child", parentUserId, "Parent User", childUserId, "Child User");
+    }
+  }
+
+  /**
+   * Determines if a user account is the parent of another user account.
+   *
+   * @param parentUserId the user id of the parent account
+   * @param childUserId the user if of the child account
+   * @return true if the user is a parent of the other user, else false
+   */
+  boolean isParent(int parentUserId, int childUserId) {
+    ParentAccountsRecord parentAccountsRecord =
+        db.selectFrom(PARENT_ACCOUNTS)
+            .where(PARENT_ACCOUNTS.PARENT_ID.eq(parentUserId))
+            .and(PARENT_ACCOUNTS.CHILD_ID.eq(childUserId))
+            .fetchOne();
+    return parentAccountsRecord != null;
+  }
+
+  /**
+   * Gets the JWTData of the user with the given userId.
+   *
+   * @param userId user id of the user to get JWTData for
+   * @return JWTData of the user
+   */
+  private JWTData getUserData(int userId) {
+    UsersRecord user = db.selectFrom(USERS).where(USERS.ID.eq(userId)).fetchOne();
+    PrivilegeLevel userPrivilegeLevel = user.getPrivilegeLevel();
+
+    return new JWTData(userId, userPrivilegeLevel);
   }
 
   @Override
@@ -171,6 +227,21 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   @Override
+  public void parentAdoptSite(
+      JWTData parentUserData,
+      int siteId,
+      ParentAdoptSiteRequest parentAdoptSiteRequest,
+      Date dateAdopted) {
+    Integer parentId = parentUserData.getUserId();
+    Integer childId = parentAdoptSiteRequest.getChildUserId();
+    checkParent(parentId, childId);
+
+    JWTData childUserData = getUserData(childId);
+
+    adoptSite(childUserData, siteId, dateAdopted);
+  }
+
+  @Override
   public AdoptedSitesResponse getAdoptedSites(JWTData userData) {
     List<Integer> favoriteSites =
         db.selectFrom(ADOPTED_SITES)
@@ -198,6 +269,20 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     record.setWeeded(recordStewardshipRequest.getWeeded());
 
     record.store();
+  }
+
+  @Override
+  public void parentRecordStewardship(
+      JWTData parentUserData,
+      int siteId,
+      ParentRecordStewardshipRequest parentRecordStewardshipRequest) {
+    Integer parentId = parentUserData.getUserId();
+    Integer childId = parentRecordStewardshipRequest.getChildUserId();
+    checkParent(parentId, childId);
+
+    JWTData childUserData = getUserData(childId);
+
+    recordStewardship(childUserData, siteId, parentRecordStewardshipRequest);
   }
 
   @Override
@@ -373,16 +458,33 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     site.store();
   }
 
-  public void deleteStewardship(JWTData userData, int activityId) {
+  @Override
+  public void editStewardship(
+      JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest) {
+    checkStewardshipExists(activityId);
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
 
-    if (activity == null) {
-      throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
+      throw new AuthException(
+          "User needs to be an admin or the activity's author to edit the record.");
     }
-    if (!(activity.getUserId().equals(userData.getUserId())
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.SUPER_ADMIN)
-        || userData.getPrivilegeLevel().equals(PrivilegeLevel.ADMIN))) {
+
+    activity.setPerformedOn(editStewardshipRequest.getDate());
+    activity.setWatered(editStewardshipRequest.getWatered());
+    activity.setMulched(editStewardshipRequest.getMulched());
+    activity.setCleaned(editStewardshipRequest.getCleaned());
+    activity.setWeeded(editStewardshipRequest.getWeeded());
+
+    activity.store();
+  }
+
+  public void deleteStewardship(JWTData userData, int activityId) {
+    checkStewardshipExists(activityId);
+    StewardshipRecord activity =
+        db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
+
+    if (!isAdminOrOwner(userData, activity.getUserId())) {
       throw new AuthException(
           "User needs to be an admin or the activity's author to delete the record.");
     }
@@ -393,15 +495,12 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void nameSiteEntry(
       JWTData userData, int siteId, NameSiteEntryRequest nameSiteEntryRequest) {
     checkSiteExists(siteId);
-    if (!isAlreadyAdoptedByUser(userData.getUserId(), siteId)) {
-      throw new AuthException("User is not the site's adopter.");
-    }
+    checkAdminOrSiteAdopter(userData, siteId);
 
     SiteEntriesRecord siteEntry =
         db.selectFrom(SITE_ENTRIES)
             .where(SITE_ENTRIES.SITE_ID.eq(siteId))
-            .orderBy(SITE_ENTRIES.UPDATED_AT)
-            .limit(1)
+            .orderBy(SITE_ENTRIES.UPDATED_AT.desc())
             .fetchOne();
 
     if (siteEntry == null) {
@@ -409,68 +508,25 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
           "Site Entry", userData.getUserId(), "User", siteId, "Site");
     }
 
-    siteEntry.setTreeName(nameSiteEntryRequest.getName());
+    if (nameSiteEntryRequest.getName().isEmpty()) {
+      siteEntry.setTreeName(null);
+    } else {
+      siteEntry.setTreeName(nameSiteEntryRequest.getName());
+    }
+
     siteEntry.store();
   }
 
   @Override
-  public void emailInactiveUsers() {
-    Map<User, List<AdoptedSitesRecord>> inactiveSitesMap = getInactiveSitesAndUsers(INACTIVITY_PERIOD);
-    for (User user : inactiveSitesMap.keySet()) {
-      List<AdoptedSitesRecord> inactiveSites = inactiveSitesMap.get(user);
-      StringBuilder inactiveSitesBuilder = new StringBuilder();
-      inactiveSites.forEach(inactiveSite -> {
-        String siteAddress = getSiteAddress(inactiveSite.getSiteId());
-        inactiveSitesBuilder.append(String
-            .format("<a href='https://map.treeboston.org/tree/%s'>%s</a><br>",
-                inactiveSite.getSiteId().toString(),
-                siteAddress.equals("") ? "(Unknown Address)" : siteAddress));
-      });
+  public void uploadSiteImage(
+      JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
+    checkSiteExists(siteId);
+    checkAdminOrSiteAdopter(userData, siteId);
 
-      emailer.sendInactiveEmail(
-          user.getEmail(), user.getFirstName(), inactiveSitesBuilder.toString());
-    }
-  }
+    // TODO upload image to S3 and save URL to database
 
-  /**
-   * Query users who haven't performed activity within the last _range_ number of days.
-   */
-  private Map<User, List<AdoptedSitesRecord>> getInactiveSitesAndUsers(int range) {
-    Calendar cal = new GregorianCalendar();
-    cal.setTime(new Timestamp(System.currentTimeMillis()));
-    cal.add(Calendar.DAY_OF_MONTH, -1 * range); // _range_ days ago
-    java.sql.Date inactiveCutoffDate = new Date(cal.getTime().getTime());
-    java.sql.Date currentDate = new Date(cal.getTime().getTime());
+    // SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
 
-    Map<User, List<AdoptedSitesRecord>> siteMap = new HashMap<>();
-    List<AdoptedSitesRecord> adoptedSites = db.selectFrom(ADOPTED_SITES)
-        .fetchInto(AdoptedSitesRecord.class);
-    // for every adopted site, check if it has a stewardship activity recorded in the last _range_
-    // days and if not, add it to _siteMap_ to send an email for it being inactive
-    for (AdoptedSitesRecord adoptedSite : adoptedSites) {
-      List<StewardshipRecord> stewardshipRecords =
-          db.selectFrom(STEWARDSHIP)
-              .where(STEWARDSHIP.SITE_ID.eq(adoptedSite.getSiteId()))
-              .and(STEWARDSHIP.PERFORMED_ON.between(inactiveCutoffDate, currentDate))
-              .fetchInto(StewardshipRecord.class);
-      if (stewardshipRecords.isEmpty()) { // adopted site is inactive
-        User user =
-            db.select(USERS.USERNAME, USERS.EMAIL, USERS.FIRST_NAME, USERS.LAST_NAME)
-                .from(USERS)
-                .where(USERS.ID.eq(adoptedSite.getUserId()))
-                .fetchInto(User.class).get(0);
-        if (siteMap.containsKey(user)) {
-          siteMap.get(user).add(adoptedSite);
-        } else {
-          siteMap.put(user, new ArrayList<>(Arrays.asList(adoptedSite)));
-        }
-      }
-    }
-    return siteMap;
-  }
-
-  /** Gets address string of the site from its ID. */
-  private String getSiteAddress(Integer siteId) {
-    return db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetch().get(0).getAddress();
+    // site.store();
   }
 }

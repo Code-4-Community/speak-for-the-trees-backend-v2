@@ -13,7 +13,6 @@ public class GetSiteResponse {
   private final String address;
   private final Integer neighborhoodId;
   private final List<SiteEntry> entries;
-  private final java.sql.Date plantingDate;
 
   public GetSiteResponse(
       Integer siteId,
@@ -24,8 +23,7 @@ public class GetSiteResponse {
       String zip,
       String address,
       Integer neighborhoodId,
-      List<SiteEntry> entries,
-      java.sql.Date plantingDate) {
+      List<SiteEntry> entries) {
     this.siteId = siteId;
     this.blockId = blockId;
     this.lat = lat;
@@ -33,9 +31,8 @@ public class GetSiteResponse {
     this.city = city;
     this.zip = zip;
     this.address = address;
-    this.entries = entries;
     this.neighborhoodId = neighborhoodId;
-    this.plantingDate = plantingDate;
+    this.entries = entries;
   }
 
   public Integer getSiteId() {
@@ -66,7 +63,7 @@ public class GetSiteResponse {
     return address;
   }
 
-  public Integer getNeighborhood() {
+  public Integer getNeighborhoodId() {
     return neighborhoodId;
   }
 
