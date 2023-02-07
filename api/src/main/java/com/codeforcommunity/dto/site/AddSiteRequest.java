@@ -2,6 +2,7 @@ package com.codeforcommunity.dto.site;
 
 import com.codeforcommunity.exceptions.HandledException;
 import java.math.BigDecimal;
+import java.sql.Date;
 import java.util.List;
 
 public class AddSiteRequest extends UpdateSiteRequest {
@@ -12,7 +13,6 @@ public class AddSiteRequest extends UpdateSiteRequest {
   private String zip;
   private String address;
   private Integer neighborhoodId;
-  private java.sql.Date plantingDate;
 
   public AddSiteRequest(
       Boolean treePresent,
@@ -53,14 +53,14 @@ public class AddSiteRequest extends UpdateSiteRequest {
       Boolean stump,
       String treeNotes,
       String siteNotes,
+      Date plantingDate,
       Integer blockId,
       BigDecimal lat,
       BigDecimal lng,
       String city,
       String zip,
       String address,
-      Integer neighborhoodId,
-      java.sql.Date plantingDate) {
+      Integer neighborhoodId) {
     super(
         treePresent,
         status,
@@ -99,7 +99,8 @@ public class AddSiteRequest extends UpdateSiteRequest {
         grate,
         stump,
         treeNotes,
-        siteNotes);
+        siteNotes,
+        plantingDate);
     this.blockId = blockId;
     this.lat = lat;
     this.lng = lng;
@@ -107,7 +108,6 @@ public class AddSiteRequest extends UpdateSiteRequest {
     this.zip = zip;
     this.address = address;
     this.neighborhoodId = neighborhoodId;
-    this.plantingDate = plantingDate;
   }
 
   public AddSiteRequest() {
@@ -168,14 +168,6 @@ public class AddSiteRequest extends UpdateSiteRequest {
 
   public void setNeighborhoodId(Integer neighborhoodId) {
     this.neighborhoodId = neighborhoodId;
-  }
-
-  public java.sql.Date getPlantingDate() {
-    return this.plantingDate;
-  }
-
-  public void setPlantingDate(java.sql.Date plantingDate) {
-    this.plantingDate = plantingDate;
   }
 
   @Override

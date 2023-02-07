@@ -121,7 +121,8 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getTreeNotes(),
                   record.getSiteNotes(),
                   record.getTreeName(),
-                  adopter);
+                  adopter,
+                  record.getPlantingDate());
 
           siteEntries.add(siteEntry);
         });
@@ -132,17 +133,9 @@ public class SiteProcessorImpl implements ISiteProcessor {
   @Override
   public GetSiteResponse getSite(int siteId) {
     SitesRecord sitesRecord = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
-    SiteEntriesRecord siteEntriesRecord =
-      db.selectFrom(SITE_ENTRIES)
-        .where(SITE_ENTRIES.SITE_ID.eq(siteId))
-        .orderBy(SITE_ENTRIES.UPDATED_AT.desc())
-        .fetchOne();
 
     if (sitesRecord == null) {
       throw new ResourceDoesNotExistException(siteId, "site");
-    }
-    if (siteEntriesRecord == null) {
-      throw new ResourceDoesNotExistException(siteId, "site entries");
     }
 
     return new GetSiteResponse(
@@ -154,8 +147,7 @@ public class SiteProcessorImpl implements ISiteProcessor {
         sitesRecord.getZip(),
         sitesRecord.getAddress(),
         sitesRecord.getNeighborhoodId(),
-        getSiteEntries(siteId),
-        siteEntriesRecord.getPlantingDate());
+        getSiteEntries(siteId));
   }
 
   @Override

@@ -1,6 +1,7 @@
 package com.codeforcommunity.dto.site;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
+import java.sql.Date;
 import java.sql.Timestamp;
 
 public class SiteEntry {
@@ -51,6 +52,12 @@ public class SiteEntry {
   private final String treeName;
   private final String adopter;
 
+  @JsonFormat(
+      shape = JsonFormat.Shape.STRING,
+      pattern = "MM/dd/yyyy",
+      timezone = "America/New_York")
+  private final Date plantingDate;
+
   public SiteEntry(
       Integer id,
       String username,
@@ -94,7 +101,8 @@ public class SiteEntry {
       String treeNotes,
       String siteNotes,
       String treeName,
-      String adopter) {
+      String adopter,
+      Date plantingDate) {
     this.id = id;
     this.username = username;
     this.updatedAt = updatedAt;
@@ -138,6 +146,7 @@ public class SiteEntry {
     this.siteNotes = siteNotes;
     this.treeName = treeName;
     this.adopter = adopter;
+    this.plantingDate = plantingDate;
   }
 
   public Integer getId() {
@@ -310,5 +319,9 @@ public class SiteEntry {
 
   public String getAdopter() {
     return adopter;
+  }
+
+  public Date getPlantingDate() {
+    return plantingDate;
   }
 }
