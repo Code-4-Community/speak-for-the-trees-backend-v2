@@ -304,4 +304,18 @@ public class ProtectedSiteRouter implements IRouter {
 
     end(ctx.response(), 200);
   }
+
+  private void registerDeleteSiteImage(Router router) {
+    Route deleteImage = router.post("delete_image/:image_id");
+    deleteImage.handler(this::handleDeleteSiteImage);
+  }
+
+  private void handleDeleteSiteImage(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+    int imageId = RestFunctions.getRequestParameterAsInt(ctx.request(), "image_id");
+
+    processor.deleteSiteImage(userData, imageId);
+
+    end(ctx.response(), 200);
+  }
 }

@@ -80,4 +80,6 @@ public interface IProtectedSiteProcessor {
    * is NULL, any pre-existing site image for the specified site will be deleted
    */
   void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest);
+
+  void deleteSiteImage(JWTData userData, int imageId);
 }
