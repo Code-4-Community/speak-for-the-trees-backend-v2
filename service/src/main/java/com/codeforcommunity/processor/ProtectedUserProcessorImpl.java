@@ -11,7 +11,15 @@ import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.auth.Passwords;
 import com.codeforcommunity.dataaccess.AuthDatabaseOperations;
 import com.codeforcommunity.dto.auth.NewUserRequest;
-import com.codeforcommunity.dto.user.*;
+import com.codeforcommunity.dto.user.ChangeEmailRequest;
+import com.codeforcommunity.dto.user.ChangePasswordRequest;
+import com.codeforcommunity.dto.user.ChangePrivilegeLevelRequest;
+import com.codeforcommunity.dto.user.ChangeUsernameRequest;
+import com.codeforcommunity.dto.user.DeleteUserRequest;
+import com.codeforcommunity.dto.user.GetChildUserResponse;
+import com.codeforcommunity.dto.user.Team;
+import com.codeforcommunity.dto.user.UserDataResponse;
+import com.codeforcommunity.dto.user.UserTeamsResponse;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.enums.TeamRole;
 import com.codeforcommunity.exceptions.AuthException;
@@ -238,8 +246,8 @@ public class ProtectedUserProcessorImpl extends AbstractProcessor
   @Override
   public GetChildUserResponse getChildUser(JWTData userData) {
     int userId = userData.getUserId();
-    List <ParentAccountsRecord> childUserData = db.selectFrom(PARENT_ACCOUNTS).where(PARENT_ACCOUNTS.PARENT_ID.eq(userId)).fetch();
-    List <UserDataResponse> userDataResponses = new ArrayList<>();
+    List<ParentAccountsRecord> childUserData = db.selectFrom(PARENT_ACCOUNTS).where(PARENT_ACCOUNTS.PARENT_ID.eq(userId)).fetch();
+    List<UserDataResponse> userDataResponses = new ArrayList<>();
     for(ParentAccountsRecord parentAccount : childUserData)
     {
       int childId = parentAccount.getChildId();
@@ -250,7 +258,6 @@ public class ProtectedUserProcessorImpl extends AbstractProcessor
       String username = usersRecord.getUsername();
       UserDataResponse userDataResponse = new UserDataResponse(firstName, lastName, email, username);
       userDataResponses.add(userDataResponse);
-
     }
 
     return new GetChildUserResponse(userDataResponses);
