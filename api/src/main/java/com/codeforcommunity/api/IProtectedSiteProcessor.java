@@ -81,5 +81,6 @@ public interface IProtectedSiteProcessor {
    */
   void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest);
 
+  /** Removes the given image */
   void deleteSiteImage(JWTData userData, int imageId);
 }

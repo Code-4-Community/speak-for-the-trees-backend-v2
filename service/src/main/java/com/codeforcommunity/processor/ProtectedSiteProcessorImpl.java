@@ -94,6 +94,11 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     }
   }
 
+  /**
+   * Check if an image exists
+   *
+   * @param imageId to check
+   */
   private void checkImageExists(int imageId) {
     if (!db.fetchExists(db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)))) {
       throw new ResourceDoesNotExistException(imageId, "Site Image");
