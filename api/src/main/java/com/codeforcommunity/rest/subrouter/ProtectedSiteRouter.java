@@ -53,6 +53,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerEditStewardship(router);
     registerNameSiteEntry(router);
     registerUploadSiteImage(router);
+    registerDeleteSiteImage(router);
 
     return router;
   }
@@ -306,7 +307,7 @@ public class ProtectedSiteRouter implements IRouter {
   }
 
   private void registerDeleteSiteImage(Router router) {
-    Route deleteImage = router.post("delete_image/:image_id");
+    Route deleteImage = router.post("/delete_image/:image_id");
     deleteImage.handler(this::handleDeleteSiteImage);
   }
 

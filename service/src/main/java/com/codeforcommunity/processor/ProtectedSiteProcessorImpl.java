@@ -546,7 +546,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void deleteSiteImage(JWTData userData, int imageId) {
     checkImageExists(imageId);
     SiteImagesRecord imagesRecord = db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)).fetchOne();
-    checkAdminOrSiteAdopter(userData, imagesRecord.getSiteEntryId());
+
+    if (!isAdmin(userData.getPrivilegeLevel()) && userData.getUserId() != imagesRecord.getUploaderId()) {
+      throw new AuthException("User needs to be an admin or the image's uploader");
+    }
 
     db.deleteFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)).execute();
   }
