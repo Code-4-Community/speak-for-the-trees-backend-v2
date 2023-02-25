@@ -139,8 +139,11 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    */
   void checkParent(int parentUserId, int childUserId) {
     if (!isParent(parentUserId, childUserId)) {
-      throw new LinkedResourceDoesNotExistException(
-          "Parent->Child", parentUserId, "Parent User", childUserId, "Child User");
+      throw new LinkedResourceDoesNotExistException("Parent->Child",
+          parentUserId,
+          "Parent User",
+          childUserId,
+          "Child User");
     }
   }
 
@@ -152,11 +155,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * @return true if the user is a parent of the other user, else false
    */
   boolean isParent(int parentUserId, int childUserId) {
-    ParentAccountsRecord parentAccountsRecord =
-        db.selectFrom(PARENT_ACCOUNTS)
-            .where(PARENT_ACCOUNTS.PARENT_ID.eq(parentUserId))
-            .and(PARENT_ACCOUNTS.CHILD_ID.eq(childUserId))
-            .fetchOne();
+    ParentAccountsRecord parentAccountsRecord = db.selectFrom(PARENT_ACCOUNTS)
+        .where(PARENT_ACCOUNTS.PARENT_ID.eq(parentUserId))
+        .and(PARENT_ACCOUNTS.CHILD_ID.eq(childUserId))
+        .fetchOne();
     return parentAccountsRecord != null;
   }
 
@@ -167,7 +169,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * @return JWTData of the user
    */
   private JWTData getUserData(int userId) {
-    UsersRecord user = db.selectFrom(USERS).where(USERS.ID.eq(userId)).fetchOne();
+    UsersRecord user = db.selectFrom(USERS)
+        .where(USERS.ID.eq(userId))
+        .fetchOne();
     PrivilegeLevel userPrivilegeLevel = user.getPrivilegeLevel();
 
     return new JWTData(userId, userPrivilegeLevel);
@@ -228,10 +232,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   @Override
   public void parentAdoptSite(
-      JWTData parentUserData,
-      int siteId,
-      ParentAdoptSiteRequest parentAdoptSiteRequest,
-      Date dateAdopted) {
+      JWTData parentUserData, int siteId, ParentAdoptSiteRequest parentAdoptSiteRequest, Date dateAdopted) {
     Integer parentId = parentUserData.getUserId();
     Integer childId = parentAdoptSiteRequest.getChildUserId();
     checkParent(parentId, childId);
@@ -273,9 +274,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   @Override
   public void parentRecordStewardship(
-      JWTData parentUserData,
-      int siteId,
-      ParentRecordStewardshipRequest parentRecordStewardshipRequest) {
+      JWTData parentUserData, int siteId, ParentRecordStewardshipRequest parentRecordStewardshipRequest) {
     Integer parentId = parentUserData.getUserId();
     Integer childId = parentRecordStewardshipRequest.getChildUserId();
     checkParent(parentId, childId);
@@ -285,7 +284,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     recordStewardship(childUserData, siteId, parentRecordStewardshipRequest);
   }
 
-  @Override
+                                      @Override
   public void addSite(JWTData userData, AddSiteRequest addSiteRequest) {
     if (addSiteRequest.getBlockId() != null) {
       checkBlockExists(addSiteRequest.getBlockId());
@@ -458,8 +457,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   @Override
-  public void editStewardship(
-      JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest) {
+  public void editStewardship(JWTData userData, int activityId, EditStewardshipRequest editStewardshipRequest) {
     checkStewardshipExists(activityId);
     StewardshipRecord activity =
         db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)).fetchOne();
@@ -515,8 +513,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   @Override // or just upload here?
-  public void uploadSiteImage(
-      JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
+  public void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
     checkSiteExists(siteId);
     checkAdminOrSiteAdopter(userData, siteId);
 
