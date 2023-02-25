@@ -296,7 +296,7 @@ public class ProtectedSiteRouter implements IRouter {
     int siteId = RestFunctions.getRequestParameterAsInt(ctx.request(), "site_id");
 
     UploadSiteImageRequest uploadSiteImageRequest =
-          RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
+            RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
 
     processor.uploadSiteImage(userData, siteId, uploadSiteImageRequest);
 

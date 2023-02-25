@@ -28,6 +28,7 @@ import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -96,7 +97,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * Check if the user is an admin or the adopter of the site with the given siteId
    *
    * @param userData the user's data
-   * @param siteId the ID of the site to check
+   * @param siteId   the ID of the site to check
    * @throws AuthException if the user is not an admin or the site's adopter
    */
   private void checkAdminOrSiteAdopter(JWTData userData, int siteId) throws AuthException {
