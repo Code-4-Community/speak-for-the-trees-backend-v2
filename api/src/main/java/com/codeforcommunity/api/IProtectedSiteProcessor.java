@@ -27,9 +27,12 @@ public interface IProtectedSiteProcessor {
   /** Removes the record in the adopted sites table linking the site to its current adopter */
   void forceUnadoptSite(JWTData userData, int siteId);
 
-  /** Adopts a tree for a child account through the parent account **/
-  void parentAdoptSite(JWTData parentUserData, int siteId, ParentAdoptSiteRequest parentAdoptSiteRequest,
-                       Date dateAdopted);
+  /** Adopts a tree for a child account through the parent account * */
+  void parentAdoptSite(
+      JWTData parentUserData,
+      int siteId,
+      ParentAdoptSiteRequest parentAdoptSiteRequest,
+      Date dateAdopted);
 
   /** Get users adopted sites */
   AdoptedSitesResponse getAdoptedSites(JWTData userData);
@@ -77,4 +80,7 @@ public interface IProtectedSiteProcessor {
    * is NULL, any pre-existing site image for the specified site will be deleted
    */
   void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest);
+
+  /** Uploads 64 encoded image to S3 */
+  void uploadSiteImageS3(JWTData userData, UploadSiteImageRequest request);
 }

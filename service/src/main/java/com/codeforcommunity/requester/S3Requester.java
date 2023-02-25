@@ -176,7 +176,7 @@ public class S3Requester {
    * @throws BadRequestImageException if the base64 decoding failed.
    * @throws S3FailedUploadException if the upload to S3 failed.
    */
-  public static String validateUploadImageToS3LucyEvents(String eventTitle, String base64Encoding)
+  public static String validateUploadImageToS3Sfft(String eventTitle, String base64Encoding)
       throws BadRequestImageException, S3FailedUploadException {
     String fileName = getImageFileNameWithoutExtension(eventTitle);
     return validateBase64ImageAndUploadToS3(fileName, externs.getDirPublic(), base64Encoding);
