@@ -2,37 +2,32 @@ package com.codeforcommunity.dto.site;
 
 import com.codeforcommunity.dto.ApiDto;
 import com.codeforcommunity.exceptions.HandledException;
-import java.util.Collections;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class AddSitesRequest extends ApiDto {
-  private List<AddSiteRequest> sites;
+  private String csvText;
 
-  public AddSitesRequest(List<AddSiteRequest> sites) {
-    this.sites = sites;
+  public AddSitesRequest(String csvText) {
+    this.csvText = csvText;
   }
 
-  private AddSitesRequest() {}
+  public AddSitesRequest() {}
 
-  public List<AddSiteRequest> getSites() {
-    return sites;
-  }
-
-  public void setSites(List<AddSiteRequest> sites) {
-    this.sites = sites;
+  public String getCsvText() {
+    return csvText;
   }
 
   @Override
   public List<String> validateFields(String fieldPrefix) throws HandledException {
-    String newFieldPrefix = fieldPrefix + "addSitesRequest.";
+    String fieldName = fieldPrefix + "add_sites_request.";
+    List<String> fields = new ArrayList<>();
 
-    if (sites == null) {
-      return Collections.singletonList(newFieldPrefix + "sites");
+    if (csvText == null) {
+      fields.add(fieldName + "csvText");
     }
 
-    return sites.stream()
-        .flatMap(ni -> ni.validateFields(newFieldPrefix).stream())
-        .collect(Collectors.toList());
+    return fields;
   }
 }

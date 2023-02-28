@@ -25,9 +25,18 @@ import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
+import com.codeforcommunity.exceptions.HandledException;
+import com.codeforcommunity.exceptions.InvalidCSVException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -439,12 +448,34 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void addSites(JWTData userData, AddSitesRequest addSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    addSitesRequest
-        .getSites()
-        .forEach(
-            newSite -> {
-              addSite(userData, newSite);
-            });
+    List<AddSiteRequest> addSiteRequests = this.parseCSVString(addSitesRequest.getCsvText());
+
+    addSiteRequests.forEach(siteRequest -> addSite(userData, siteRequest));
+  }
+
+  /**
+   * Parses the given CSV string containing data on a site and site entry to a list of
+   * AddSiteRequests.
+   *
+   * @param sitesCSV CSV string to parse
+   * @throws HandledException if the given CSV string cannot be parsed properly
+   * @return the parsed list of AddSiteRequests
+   */
+  private List<AddSiteRequest> parseCSVString(String sitesCSV) throws HandledException {
+    try {
+      CsvMapper mapper = new CsvMapper();
+      CsvSchema schema = CsvSchema.emptySchema().withHeader();
+      MappingIterator<AddSiteRequest> sitesIterator =
+          mapper.readerFor(AddSiteRequest.class).with(schema).readValues(sitesCSV);
+      List<AddSiteRequest> addSiteRequests = sitesIterator.readAll();
+      if (addSiteRequests.size() == 0) {
+        throw new InvalidCSVException();
+      }
+      addSiteRequests.forEach(siteRequest -> siteRequest.validate());
+      return addSiteRequests;
+    } catch (HandledException | IOException e) {
+      throw new InvalidCSVException();
+    }
   }
 
   @Override
