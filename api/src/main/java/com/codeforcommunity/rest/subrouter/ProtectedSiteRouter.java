@@ -8,6 +8,7 @@ import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
+import com.codeforcommunity.dto.site.FilterSitesRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
@@ -23,6 +24,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.logging.Filter;
 
 public class ProtectedSiteRouter implements IRouter {
 
@@ -52,6 +54,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerEditStewardship(router);
     registerNameSiteEntry(router);
     registerUploadSiteImage(router);
+    registerFilterSites(router);
 
     return router;
   }
@@ -300,6 +303,20 @@ public class ProtectedSiteRouter implements IRouter {
         RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
 
     processor.uploadSiteImage(userData, siteId, uploadSiteImageRequest);
+
+    end(ctx.response(), 200);
+  }
+
+  private void registerFilterSites(Router router) {
+    Route filterSites = router.get("/filter_sites");
+    filterSites.handler(this::handleFilterSites);
+  }
+
+  private void handleFilterSites(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+    FilterSitesRequest filterSitesRequest = RestFunctions.getJsonBodyAsClass(ctx, FilterSitesRequest.class);
+
+    processor.filterSites(userData, filterSitesRequest);
 
     end(ctx.response(), 200);
   }

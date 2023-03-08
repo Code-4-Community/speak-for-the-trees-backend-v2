@@ -16,6 +16,7 @@ import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
+import com.codeforcommunity.dto.site.FilterSitesRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
@@ -35,8 +36,18 @@ import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.jooq.DSLContext;
+import org.jooq.Record2;
+import org.jooq.Record3;
+import org.jooq.Result;
+import org.jooq.SelectConditionStep;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
@@ -552,4 +563,102 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
     // site.store();
   }
+
+  @Override
+  public void filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
+
+    Collection<Integer> filteredSiteIds = filterSitesRequest.getNeighborhoodIds() == null
+        ? db.select(SITES.ID).from(SITES).fetch(SITES.ID)
+        : db.select(SITES.ID).from(SITES).where(SITES.NEIGHBORHOOD_ID
+        .in(filterSitesRequest.getNeighborhoodIds())).fetch(SITES.ID);
+
+    Map<Integer, AdoptedSitesRecord> adoptedSites = filterByAdopted(filterSitesRequest.getAdoptedStart(), filterSitesRequest.getAdoptedEnd(), filteredSiteIds);
+    filteredSiteIds = adoptedSites.keySet();
+
+    Map<Integer, Record2<Date, Integer>> activities = filterByActivity(filterSitesRequest.getLastActivityStart(), filterSitesRequest.getLastActivityEnd(), filteredSiteIds);
+    filteredSiteIds = activities.keySet();
+
+    // select max(id) as id, site_id, species from public.site_entries group by site_id, species order by id asc
+    SelectConditionStep<Record3<Integer, Integer, String>> select = db
+        .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+        .from(SITE_ENTRIES)
+        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds));
+
+    Map<Integer, Record3<Integer, Integer, String>> map = db
+        .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+        .from(SITE_ENTRIES)
+        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds))
+        .and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies()))
+        .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+        .fetchMap(SITE_ENTRIES.SITE_ID);
+
+  }
+
+  private Map<Integer, AdoptedSitesRecord> filterByAdopted(Date adoptedStart, Date adoptedEnd, Collection<Integer> filteredSiteIds) {
+    SelectConditionStep<AdoptedSitesRecord> select = db
+        .selectFrom(ADOPTED_SITES)
+        .where(ADOPTED_SITES.SITE_ID.in(filteredSiteIds));
+
+    if (adoptedStart != null) {
+      select = select.and(ADOPTED_SITES.DATE_ADOPTED.greaterOrEqual(adoptedStart));
+    }
+    if (adoptedEnd != null) {
+      select = select.and(ADOPTED_SITES.DATE_ADOPTED.lessOrEqual(adoptedEnd));
+    }
+
+    return select.fetchMap(ADOPTED_SITES.SITE_ID);
+  }
+
+  private Map<Integer, Record2<Date, Integer>> filterByActivity(Date activityStart, Date activityEnd, Collection<Integer> filteredSiteIds) {
+    Result<Record2<Date, Integer>> latestActivities = db
+        .select(max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON.getName()), STEWARDSHIP.SITE_ID)
+        .from(STEWARDSHIP)
+        .where(STEWARDSHIP.SITE_ID.in(filteredSiteIds)).fetch();
+
+
+    latestActivities.intoMap(STEWARDSHIP.SITE_ID);
+
+    return latestActivities.stream().filter(r -> filterDate(r.get(STEWARDSHIP.PERFORMED_ON), activityStart, activityEnd))
+        .collect(Collectors.toMap(r -> r.get(STEWARDSHIP.SITE_ID), r -> r));
+
+//    return select.groupBy(STEWARDSHIP.SITE_ID).fetchMap(STEWARDSHIP.SITE_ID);
+
+//    select max(performed_on) as performed_on, site_id from public.stewardship
+//    where performed_on < '2023-01-11'
+//    group by site_id;
+
+  }
+
+  private boolean filterDate(Date activityDate, Date activityStart, Date activityEnd) {
+    if (activityStart == null && activityEnd == null) {
+      return true;
+    }
+
+    boolean accept = true;
+    if (activityStart != null) {
+      accept = accept && activityDate.compareTo(activityStart) >= 0;
+    }
+    if (activityEnd != null) {
+      accept = accept && activityDate.compareTo(activityEnd) <= 0;
+    }
+
+    return accept;
+  }
 }
+
+//  SelectConditionStep<SiteEntriesRecord> selectSiteEntries = db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds));
+//  Map<Integer, SiteEntriesRecord> siteEntries = (filterSitesRequest.getTreeSpecies() == null
+//      ? selectSiteEntries.fetch()
+//      : selectSiteEntries.and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies())).fetch())
+//      .intoMap(SITE_ENTRIES.SITE_ID);
+//    filteredSiteIds = siteEntries.keySet();
+
+//    List<Integer> siteIds = result.getValues(SITES.ID);
+
+//    result.getValues(SITES.ID);
+//    db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.in(siteIds)).fetch();
+////    db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SPECIES.in(Arrays.asList("hi"))).and(SITE_ENTRIES.SITE_ID.in(sitesMap.keySet()));
+//
+//    db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.SITE_ID.in(sitesMap))
+//
+//    System.out.println(String.format("Time: %d | Rows returned: %d", stop - start, result.size()));
