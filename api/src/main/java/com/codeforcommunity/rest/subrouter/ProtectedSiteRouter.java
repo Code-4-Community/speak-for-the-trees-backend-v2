@@ -5,6 +5,7 @@ import static com.codeforcommunity.rest.ApiRouter.end;
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.site.AddSiteRequest;
+import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
@@ -54,6 +55,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerEditStewardship(router);
     registerNameSiteEntry(router);
     registerUploadSiteImage(router);
+    registerDeleteSiteImage(router);
     registerFilterSites(router);
 
     return router;
@@ -236,7 +238,7 @@ public class ProtectedSiteRouter implements IRouter {
   private void handleAddSitesRoute(RoutingContext ctx) {
     JWTData userData = ctx.get("jwt_data");
 
-    String addSitesRequest = RestFunctions.getBodyAsString(ctx);
+    AddSitesRequest addSitesRequest = RestFunctions.getJsonBodyAsClass(ctx, AddSitesRequest.class);
 
     processor.addSites(userData, addSitesRequest);
 
@@ -303,6 +305,20 @@ public class ProtectedSiteRouter implements IRouter {
         RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
 
     processor.uploadSiteImage(userData, siteId, uploadSiteImageRequest);
+
+    end(ctx.response(), 200);
+  }
+
+  private void registerDeleteSiteImage(Router router) {
+    Route deleteImage = router.post("/delete_image/:image_id");
+    deleteImage.handler(this::handleDeleteSiteImage);
+  }
+
+  private void handleDeleteSiteImage(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+    int imageId = RestFunctions.getRequestParameterAsInt(ctx.request(), "image_id");
+
+    processor.deleteSiteImage(userData, imageId);
 
     end(ctx.response(), 200);
   }
