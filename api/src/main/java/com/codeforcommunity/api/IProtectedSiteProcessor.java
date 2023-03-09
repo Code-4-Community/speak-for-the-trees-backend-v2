@@ -81,5 +81,5 @@ public interface IProtectedSiteProcessor {
    */
   void uploadSiteImage(JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest);
 
-  void filterSites(JWTData userData, FilterSitesRequest filterSitesRequest);
+  List<Integer> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest);
 }

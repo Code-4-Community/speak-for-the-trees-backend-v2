@@ -565,36 +565,25 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   @Override
-  public void filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
+  public List<Integer> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
 
     Collection<Integer> filteredSiteIds = filterSitesRequest.getNeighborhoodIds() == null
         ? db.select(SITES.ID).from(SITES).fetch(SITES.ID)
         : db.select(SITES.ID).from(SITES).where(SITES.NEIGHBORHOOD_ID
         .in(filterSitesRequest.getNeighborhoodIds())).fetch(SITES.ID);
 
-    Map<Integer, AdoptedSitesRecord> adoptedSites = filterByAdopted(filterSitesRequest.getAdoptedStart(), filterSitesRequest.getAdoptedEnd(), filteredSiteIds);
-    filteredSiteIds = adoptedSites.keySet();
+    filteredSiteIds = filterByAdopted(filterSitesRequest.getAdoptedStart(), filterSitesRequest.getAdoptedEnd(), filteredSiteIds);
+    filteredSiteIds = filterByActivity(filterSitesRequest.getLastActivityStart(), filterSitesRequest.getLastActivityEnd(), filteredSiteIds);
+    filteredSiteIds = filterByTreeSpecies(filterSitesRequest.getTreeSpecies(), filteredSiteIds);
 
-    Map<Integer, Record2<Date, Integer>> activities = filterByActivity(filterSitesRequest.getLastActivityStart(), filterSitesRequest.getLastActivityEnd(), filteredSiteIds);
-    filteredSiteIds = activities.keySet();
-
-    // select max(id) as id, site_id, species from public.site_entries group by site_id, species order by id asc
-    SelectConditionStep<Record3<Integer, Integer, String>> select = db
-        .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-        .from(SITE_ENTRIES)
-        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds));
-
-    Map<Integer, Record3<Integer, Integer, String>> map = db
-        .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-        .from(SITE_ENTRIES)
-        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds))
-        .and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies()))
-        .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-        .fetchMap(SITE_ENTRIES.SITE_ID);
-
+    return filteredSiteIds;
   }
 
-  private Map<Integer, AdoptedSitesRecord> filterByAdopted(Date adoptedStart, Date adoptedEnd, Collection<Integer> filteredSiteIds) {
+  private Collection<Integer> filterByAdopted(Date adoptedStart, Date adoptedEnd, Collection<Integer> filteredSiteIds) {
+    if (adoptedStart == null && adoptedEnd == null) {
+      return filteredSiteIds;
+    }
+
     SelectConditionStep<AdoptedSitesRecord> select = db
         .selectFrom(ADOPTED_SITES)
         .where(ADOPTED_SITES.SITE_ID.in(filteredSiteIds));
@@ -606,27 +595,46 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       select = select.and(ADOPTED_SITES.DATE_ADOPTED.lessOrEqual(adoptedEnd));
     }
 
-    return select.fetchMap(ADOPTED_SITES.SITE_ID);
+    return select.fetch(ADOPTED_SITES.SITE_ID);
   }
 
-  private Map<Integer, Record2<Date, Integer>> filterByActivity(Date activityStart, Date activityEnd, Collection<Integer> filteredSiteIds) {
+  private Collection<Integer> filterByActivity(Date activityStart, Date activityEnd, Collection<Integer> filteredSiteIds) {
+    if (activityStart == null && activityEnd == null) {
+      return filteredSiteIds;
+    }
+
     Result<Record2<Date, Integer>> latestActivities = db
         .select(max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON.getName()), STEWARDSHIP.SITE_ID)
         .from(STEWARDSHIP)
         .where(STEWARDSHIP.SITE_ID.in(filteredSiteIds)).fetch();
 
-
-    latestActivities.intoMap(STEWARDSHIP.SITE_ID);
-
-    return latestActivities.stream().filter(r -> filterDate(r.get(STEWARDSHIP.PERFORMED_ON), activityStart, activityEnd))
-        .collect(Collectors.toMap(r -> r.get(STEWARDSHIP.SITE_ID), r -> r));
-
-//    return select.groupBy(STEWARDSHIP.SITE_ID).fetchMap(STEWARDSHIP.SITE_ID);
+    return latestActivities.stream()
+        .filter(r -> filterDate(r.get(STEWARDSHIP.PERFORMED_ON), activityStart, activityEnd))
+        .map(r -> r.get(STEWARDSHIP.SITE_ID))
+        .collect(Collectors.toList());
 
 //    select max(performed_on) as performed_on, site_id from public.stewardship
 //    where performed_on < '2023-01-11'
 //    group by site_id;
+  }
 
+  private Collection<Integer> filterByTreeSpecies(List<String> treeSpecies, Collection<Integer> filteredSiteIds) {
+    // select max(id) as id, site_id, species from public.site_entries group by site_id, species order by id asc
+    SelectConditionStep<Record3<Integer, Integer, String>> select = db
+        .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+        .from(SITE_ENTRIES)
+        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds));
+
+    if (treeSpecies == null) {
+      return select
+          .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+          .fetch(SITE_ENTRIES.SITE_ID);
+    } else {
+      return select
+          .and(SITE_ENTRIES.SPECIES.in(treeSpecies))
+          .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+          .fetch(SITE_ENTRIES.SITE_ID);
+    }
   }
 
   private boolean filterDate(Date activityDate, Date activityStart, Date activityEnd) {
@@ -646,19 +654,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 }
 
-//  SelectConditionStep<SiteEntriesRecord> selectSiteEntries = db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds));
-//  Map<Integer, SiteEntriesRecord> siteEntries = (filterSitesRequest.getTreeSpecies() == null
-//      ? selectSiteEntries.fetch()
-//      : selectSiteEntries.and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies())).fetch())
-//      .intoMap(SITE_ENTRIES.SITE_ID);
-//    filteredSiteIds = siteEntries.keySet();
-
-//    List<Integer> siteIds = result.getValues(SITES.ID);
-
-//    result.getValues(SITES.ID);
-//    db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.in(siteIds)).fetch();
-////    db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.SPECIES.in(Arrays.asList("hi"))).and(SITE_ENTRIES.SITE_ID.in(sitesMap.keySet()));
-//
-//    db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.SITE_ID.in(sitesMap))
-//
-//    System.out.println(String.format("Time: %d | Rows returned: %d", stop - start, result.size()));
+//  Map<Integer, Record3<Integer, Integer, String>> map = db
+//      .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+//      .from(SITE_ENTRIES)
+//      .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds))
+//      .and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies()))
+//      .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+//      .fetchMap(SITE_ENTRIES.SITE_ID);
