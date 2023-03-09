@@ -10,6 +10,7 @@ import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.FilterSitesRequest;
+import com.codeforcommunity.dto.site.FilterSitesResponse;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
@@ -332,8 +333,8 @@ public class ProtectedSiteRouter implements IRouter {
     JWTData userData = ctx.get("jwt_data");
     FilterSitesRequest filterSitesRequest = RestFunctions.getJsonBodyAsClass(ctx, FilterSitesRequest.class);
 
-    processor.filterSites(userData, filterSitesRequest);
+    FilterSitesResponse filterSitesResponse = processor.filterSites(userData, filterSitesRequest);
 
-    end(ctx.response(), 200);
+    end(ctx.response(), 200, JsonObject.mapFrom(filterSitesResponse).toString());
   }
 }

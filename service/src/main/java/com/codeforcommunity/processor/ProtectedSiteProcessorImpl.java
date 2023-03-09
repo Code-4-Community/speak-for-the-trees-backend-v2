@@ -19,6 +19,7 @@ import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.FilterSitesRequest;
+import com.codeforcommunity.dto.site.FilterSitesResponse;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
@@ -591,12 +592,12 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
     db.deleteFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)).execute();
   }
-}
 
   @Override
-  public List<Integer> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
+  public FilterSitesResponse filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    Collection<Integer> filteredSiteIds = filterSitesRequest.getNeighborhoodIds() == null
+    List<Integer> filteredSiteIds = filterSitesRequest.getNeighborhoodIds() == null
         ? db.select(SITES.ID).from(SITES).fetch(SITES.ID)
         : db.select(SITES.ID).from(SITES).where(SITES.NEIGHBORHOOD_ID
         .in(filterSitesRequest.getNeighborhoodIds())).fetch(SITES.ID);
@@ -605,10 +606,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     filteredSiteIds = filterByActivity(filterSitesRequest.getLastActivityStart(), filterSitesRequest.getLastActivityEnd(), filteredSiteIds);
     filteredSiteIds = filterByTreeSpecies(filterSitesRequest.getTreeSpecies(), filteredSiteIds);
 
-    return filteredSiteIds;
+    return new FilterSitesResponse(filteredSiteIds.size(), filteredSiteIds);
   }
 
-  private Collection<Integer> filterByAdopted(Date adoptedStart, Date adoptedEnd, Collection<Integer> filteredSiteIds) {
+  private List<Integer> filterByAdopted(Date adoptedStart, Date adoptedEnd, List<Integer> filteredSiteIds) {
     if (adoptedStart == null && adoptedEnd == null) {
       return filteredSiteIds;
     }
@@ -627,7 +628,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     return select.fetch(ADOPTED_SITES.SITE_ID);
   }
 
-  private Collection<Integer> filterByActivity(Date activityStart, Date activityEnd, Collection<Integer> filteredSiteIds) {
+  private List<Integer> filterByActivity(Date activityStart, Date activityEnd, List<Integer> filteredSiteIds) {
     if (activityStart == null && activityEnd == null) {
       return filteredSiteIds;
     }
@@ -635,7 +636,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     Result<Record2<Date, Integer>> latestActivities = db
         .select(max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON.getName()), STEWARDSHIP.SITE_ID)
         .from(STEWARDSHIP)
-        .where(STEWARDSHIP.SITE_ID.in(filteredSiteIds)).fetch();
+        .where(STEWARDSHIP.SITE_ID.in(filteredSiteIds))
+        .groupBy(STEWARDSHIP.SITE_ID)
+        .fetch();
 
     return latestActivities.stream()
         .filter(r -> filterDate(r.get(STEWARDSHIP.PERFORMED_ON), activityStart, activityEnd))
@@ -647,23 +650,19 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 //    group by site_id;
   }
 
-  private Collection<Integer> filterByTreeSpecies(List<String> treeSpecies, Collection<Integer> filteredSiteIds) {
+  private List<Integer> filterByTreeSpecies(List<String> treeSpecies, List<Integer> filteredSiteIds) {
+    if (treeSpecies == null) {
+      return filteredSiteIds;
+    }
+
     // select max(id) as id, site_id, species from public.site_entries group by site_id, species order by id asc
-    SelectConditionStep<Record3<Integer, Integer, String>> select = db
+    return db
         .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
         .from(SITE_ENTRIES)
-        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds));
-
-    if (treeSpecies == null) {
-      return select
-          .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-          .fetch(SITE_ENTRIES.SITE_ID);
-    } else {
-      return select
-          .and(SITE_ENTRIES.SPECIES.in(treeSpecies))
-          .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-          .fetch(SITE_ENTRIES.SITE_ID);
-    }
+        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds))
+        .and(SITE_ENTRIES.SPECIES.in(treeSpecies))
+        .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
+        .fetch(SITE_ENTRIES.SITE_ID);
   }
 
   private boolean filterDate(Date activityDate, Date activityStart, Date activityEnd) {
@@ -682,11 +681,3 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     return accept;
   }
 }
-
-//  Map<Integer, Record3<Integer, Integer, String>> map = db
-//      .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-//      .from(SITE_ENTRIES)
-//      .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds))
-//      .and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies()))
-//      .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-//      .fetchMap(SITE_ENTRIES.SITE_ID);

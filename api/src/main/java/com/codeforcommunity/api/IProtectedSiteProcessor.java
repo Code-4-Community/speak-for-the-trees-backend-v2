@@ -7,6 +7,7 @@ import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.FilterSitesRequest;
+import com.codeforcommunity.dto.site.FilterSitesResponse;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
@@ -14,6 +15,7 @@ import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import java.sql.Date;
+import java.util.Collection;
 
 public interface IProtectedSiteProcessor {
 
@@ -85,5 +87,5 @@ public interface IProtectedSiteProcessor {
   /** Removes the site image with the given image ID */
   void deleteSiteImage(JWTData userData, int imageId);
 
-  List<Integer> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest);
+  FilterSitesResponse filterSites(JWTData userData, FilterSitesRequest filterSitesRequest);
 }
