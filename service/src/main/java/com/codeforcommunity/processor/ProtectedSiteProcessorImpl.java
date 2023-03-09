@@ -14,6 +14,7 @@ import static org.jooq.impl.DSL.max;
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.site.AddSiteRequest;
+import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
@@ -31,9 +32,12 @@ import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
 import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.Reader;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -454,10 +458,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   @Override
-  public void addSites(JWTData userData, String addSitesRequest) {
+  public void addSites(JWTData userData, AddSitesRequest addSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    List<AddSiteRequest> addSiteRequests = this.parseCSVString(addSitesRequest);
+    List<AddSiteRequest> addSiteRequests = this.parseCSVString(addSitesRequest.getCsvText());
 
     addSiteRequests.forEach(siteRequest -> addSite(userData, siteRequest));
   }
@@ -477,6 +481,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       MappingIterator<AddSiteRequest> sitesIterator =
           mapper.readerFor(AddSiteRequest.class).with(schema).readValues(sitesCSV);
       List<AddSiteRequest> addSiteRequests = sitesIterator.readAll();
+      if (addSiteRequests.size() == 0) {
+        throw new InvalidCSVException();
+      }
       addSiteRequests.forEach(siteRequest -> siteRequest.validate());
       return addSiteRequests;
     } catch (HandledException | IOException e) {
