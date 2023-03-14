@@ -26,6 +26,8 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import java.sql.Date;
 import java.time.LocalDate;
+import java.util.Collections;
+import java.util.List;
 import java.util.logging.Filter;
 
 public class ProtectedSiteRouter implements IRouter {
@@ -333,8 +335,8 @@ public class ProtectedSiteRouter implements IRouter {
     JWTData userData = ctx.get("jwt_data");
     FilterSitesRequest filterSitesRequest = RestFunctions.getJsonBodyAsClass(ctx, FilterSitesRequest.class);
 
-    FilterSitesResponse filterSitesResponse = processor.filterSites(userData, filterSitesRequest);
+    List<FilterSitesResponse> filterSitesResponse = processor.filterSites(userData, filterSitesRequest);
 
-    end(ctx.response(), 200, JsonObject.mapFrom(filterSitesResponse).toString());
+    end(ctx.response(), 200, JsonObject.mapFrom(Collections.singletonMap("filteredSites", filterSitesResponse)).toString());
   }
 }

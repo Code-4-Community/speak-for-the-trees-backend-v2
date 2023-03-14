@@ -9,7 +9,9 @@ import static org.jooq.generated.Tables.SITE_ENTRIES;
 import static org.jooq.generated.Tables.SITE_IMAGES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
 import static org.jooq.generated.Tables.USERS;
+import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.max;
+import static org.jooq.impl.DSL.noCondition;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
@@ -42,11 +44,15 @@ import java.io.IOException;
 import java.io.Reader;
 import java.sql.Date;
 import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
+import java.util.logging.Filter;
 import java.util.stream.Collectors;
 
 import org.jooq.DSLContext;
@@ -54,6 +60,7 @@ import org.jooq.Record2;
 import org.jooq.Record3;
 import org.jooq.Result;
 import org.jooq.SelectConditionStep;
+import org.jooq.User;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
@@ -61,6 +68,8 @@ import org.jooq.generated.tables.records.SiteImagesRecord;
 import org.jooq.generated.tables.records.SitesRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
 import org.jooq.generated.tables.records.UsersRecord;
+
+import jdk.vm.ci.meta.Local;
 
 public class ProtectedSiteProcessorImpl extends AbstractProcessor
     implements IProtectedSiteProcessor {
@@ -594,45 +603,74 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   @Override
-  public FilterSitesResponse filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
+  public List<FilterSitesResponse> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    List<Integer> filteredSiteIds = filterSitesRequest.getNeighborhoodIds() == null
-        ? db.select(SITES.ID).from(SITES).fetch(SITES.ID)
-        : db.select(SITES.ID).from(SITES).where(SITES.NEIGHBORHOOD_ID
-        .in(filterSitesRequest.getNeighborhoodIds())).fetch(SITES.ID);
+    Map<Integer, Record3<Integer, String, Integer>> sitesRecords =
+        db.select(SITES.ID, SITES.ADDRESS, SITES.NEIGHBORHOOD_ID).from(SITES)
+            .where(filterSitesRequest.getNeighborhoodIds() != null
+                ? SITES.NEIGHBORHOOD_ID.in(filterSitesRequest.getNeighborhoodIds())
+                : noCondition())
+            .fetchMap(SITES.ID);
 
-    filteredSiteIds = filterByAdopted(filterSitesRequest.getAdoptedStart(), filterSitesRequest.getAdoptedEnd(), filteredSiteIds);
-    filteredSiteIds = filterByActivity(filterSitesRequest.getLastActivityStart(), filterSitesRequest.getLastActivityEnd(), filteredSiteIds);
+    Collection<Integer> filteredSiteIds = sitesRecords.keySet();
+
+    Map<Integer, AdoptedSitesRecord> adoptedSites = filterByAdopted(filterSitesRequest.getAdoptedStart(), filterSitesRequest.getAdoptedEnd(), filteredSiteIds);
+    filteredSiteIds = adoptedSites.keySet();
+
+    Date activityStart = filterSitesRequest.getLastActivityStart();
+    Date activityEnd = filterSitesRequest.getLastActivityEnd();
+    Map<Integer, Record2<Date, Integer>> activities = filterByActivity(activityStart, activityEnd, filteredSiteIds);
+    filteredSiteIds = (activityStart == null && activityEnd == null) ? filteredSiteIds : activities.keySet();
+
     filteredSiteIds = filterByTreeSpecies(filterSitesRequest.getTreeSpecies(), filteredSiteIds);
 
-    return new FilterSitesResponse(filteredSiteIds.size(), filteredSiteIds);
-  }
+    // now pull data by site id
 
-  private List<Integer> filterByAdopted(Date adoptedStart, Date adoptedEnd, List<Integer> filteredSiteIds) {
-    if (adoptedStart == null && adoptedEnd == null) {
-      return filteredSiteIds;
+    List<FilterSitesResponse> responses = new ArrayList<>();
+    for (int siteId : filteredSiteIds) {
+      Integer adopterId, adopterActivityCount, neighborhoodId, lastActivityWeeks = null;
+      String address, adopterName;
+      Date dateAdopted;
+
+      address = sitesRecords.get(siteId).get(SITES.ADDRESS);
+      neighborhoodId = sitesRecords.get(siteId).get(SITES.NEIGHBORHOOD_ID);
+
+      AdoptedSitesRecord adoptedRecord = adoptedSites.get(siteId);
+
+      adopterId = adoptedRecord.get(ADOPTED_SITES.USER_ID);
+      dateAdopted = adoptedRecord.get(ADOPTED_SITES.DATE_ADOPTED);
+
+      adopterActivityCount = db
+          .select(count().as("count"))
+          .from(STEWARDSHIP)
+          .where(STEWARDSHIP.SITE_ID.eq(siteId)).and(STEWARDSHIP.USER_ID.eq(adopterId)).fetchOne()
+          .get("count", Integer.class);
+
+      Record2<String, String> adopter = db.select(USERS.FIRST_NAME, USERS.LAST_NAME).from(USERS).where(USERS.ID.eq(adopterId)).fetchOne();
+      adopterName = adopter.get(USERS.FIRST_NAME) + " " + adopter.get(USERS.LAST_NAME);
+
+      if (activities.containsKey(siteId)) {
+        Date latestActivity = activities.get(siteId).get(STEWARDSHIP.PERFORMED_ON);
+        lastActivityWeeks = (int) ChronoUnit.WEEKS.between(latestActivity.toLocalDate(), LocalDate.now());
+      }
+
+      responses.add(new FilterSitesResponse(siteId, address, adopterId, adopterName, dateAdopted, adopterActivityCount, neighborhoodId, lastActivityWeeks));
     }
 
-    SelectConditionStep<AdoptedSitesRecord> select = db
+    return responses;
+  }
+
+  private Map<Integer, AdoptedSitesRecord> filterByAdopted(Date adoptedStart, Date adoptedEnd, Collection<Integer> filteredSiteIds) {
+    return db
         .selectFrom(ADOPTED_SITES)
-        .where(ADOPTED_SITES.SITE_ID.in(filteredSiteIds));
-
-    if (adoptedStart != null) {
-      select = select.and(ADOPTED_SITES.DATE_ADOPTED.greaterOrEqual(adoptedStart));
-    }
-    if (adoptedEnd != null) {
-      select = select.and(ADOPTED_SITES.DATE_ADOPTED.lessOrEqual(adoptedEnd));
-    }
-
-    return select.fetch(ADOPTED_SITES.SITE_ID);
+        .where(ADOPTED_SITES.SITE_ID.in(filteredSiteIds))
+        .and(adoptedStart != null ? ADOPTED_SITES.DATE_ADOPTED.greaterOrEqual(adoptedStart) : noCondition())
+        .and(adoptedEnd != null ? ADOPTED_SITES.DATE_ADOPTED.lessOrEqual(adoptedEnd) : noCondition())
+        .fetchMap(ADOPTED_SITES.SITE_ID);
   }
 
-  private List<Integer> filterByActivity(Date activityStart, Date activityEnd, List<Integer> filteredSiteIds) {
-    if (activityStart == null && activityEnd == null) {
-      return filteredSiteIds;
-    }
-
+  private Map<Integer, Record2<Date, Integer>> filterByActivity(Date activityStart, Date activityEnd, Collection<Integer> filteredSiteIds) {
     Result<Record2<Date, Integer>> latestActivities = db
         .select(max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON.getName()), STEWARDSHIP.SITE_ID)
         .from(STEWARDSHIP)
@@ -640,17 +678,20 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
         .groupBy(STEWARDSHIP.SITE_ID)
         .fetch();
 
+    if (activityStart == null && activityEnd == null) {
+      return latestActivities.intoMap(STEWARDSHIP.SITE_ID);
+    }
+
     return latestActivities.stream()
         .filter(r -> filterDate(r.get(STEWARDSHIP.PERFORMED_ON), activityStart, activityEnd))
-        .map(r -> r.get(STEWARDSHIP.SITE_ID))
-        .collect(Collectors.toList());
+        .collect(Collectors.toMap(r -> r.get(STEWARDSHIP.SITE_ID), r -> r));
 
 //    select max(performed_on) as performed_on, site_id from public.stewardship
 //    where performed_on < '2023-01-11'
 //    group by site_id;
   }
 
-  private List<Integer> filterByTreeSpecies(List<String> treeSpecies, List<Integer> filteredSiteIds) {
+  private Collection<Integer> filterByTreeSpecies(List<String> treeSpecies, Collection<Integer> filteredSiteIds) {
     if (treeSpecies == null) {
       return filteredSiteIds;
     }
