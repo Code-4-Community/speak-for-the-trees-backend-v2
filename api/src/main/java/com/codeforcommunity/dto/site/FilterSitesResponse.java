@@ -1,27 +1,25 @@
 package com.codeforcommunity.dto.site;
 
-import java.util.Date;
-
 public class FilterSitesResponse {
 
   private int siteId;
   private String address;
-  private int adoptedId;
+  private int adopterId;
   private String adopterName;
-  private Date dateAdopted;
+  private String dateAdopted;
   private int adopterActivityCount;
   private int neighborhoodId;
   private Integer lastActivityWeeks;
 
-  public FilterSitesResponse(int siteId, String address, int adoptedId, String adopterName, Date dateAdopted, int adopterActivityCount, int neighborhoodId, int lastActivityWeeks) {
+  public FilterSitesResponse(int siteId, String address, int adopterId, String adopterName, String dateAdopted, int adopterActivityCount, int neighborhoodId, int lastActivityWeeks) {
     this.siteId = siteId;
     this.address = address;
-    this.adoptedId = adoptedId;
+    this.adopterId = adopterId;
     this.adopterName = adopterName;
     this.dateAdopted = dateAdopted;
     this.adopterActivityCount = adopterActivityCount;
     this.neighborhoodId = neighborhoodId;
-    this.lastActivityWeeks = lastActivityWeeks;
+    if (lastActivityWeeks >= 0) this.lastActivityWeeks = lastActivityWeeks;
   }
 
   public int getSiteId() {
@@ -40,12 +38,12 @@ public class FilterSitesResponse {
     this.address = address;
   }
 
-  public int getAdoptedId() {
-    return adoptedId;
+  public int getAdopterId() {
+    return adopterId;
   }
 
-  public void setAdoptedId(int adoptedId) {
-    this.adoptedId = adoptedId;
+  public void setAdopterId(int adopterId) {
+    this.adopterId = adopterId;
   }
 
   public String getAdopterName() {
@@ -56,11 +54,11 @@ public class FilterSitesResponse {
     this.adopterName = adopterName;
   }
 
-  public Date getDateAdopted() {
+  public String getDateAdopted() {
     return dateAdopted;
   }
 
-  public void setDateAdopted(Date dateAdopted) {
+  public void setDateAdopted(String dateAdopted) {
     this.dateAdopted = dateAdopted;
   }
 

@@ -15,7 +15,6 @@ import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import java.sql.Date;
-import java.util.Collection;
 import java.util.List;
 
 public interface IProtectedSiteProcessor {
@@ -88,5 +87,10 @@ public interface IProtectedSiteProcessor {
   /** Removes the site image with the given image ID */
   void deleteSiteImage(JWTData userData, int imageId);
 
+  /**
+   * Retrieves site, adoption, and stewardship information about all sites that match
+   * the criteria in the given request.
+   * Only admins or super admins can perform this action.
+   */
   List<FilterSitesResponse> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest);
 }

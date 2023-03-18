@@ -28,7 +28,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
-import java.util.logging.Filter;
 
 public class ProtectedSiteRouter implements IRouter {
 

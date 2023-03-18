@@ -1,6 +1,7 @@
 package com.codeforcommunity.dto.site;
 
 import com.codeforcommunity.dto.ApiDto;
+import com.fasterxml.jackson.annotation.JsonFormat;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -10,12 +11,16 @@ public class FilterSitesRequest extends ApiDto {
 
   private List<String> treeSpecies;
 
+  @JsonFormat(timezone = "America/New_York", pattern = "yyyy-MM-dd")
   private Date adoptedStart;
 
+  @JsonFormat(timezone = "America/New_York", pattern = "yyyy-MM-dd")
   private Date adoptedEnd;
 
+  @JsonFormat(timezone = "America/New_York", pattern = "yyyy-MM-dd")
   private Date lastActivityStart;
 
+  @JsonFormat(timezone = "America/New_York", pattern = "yyyy-MM-dd")
   private Date lastActivityEnd;
 
   private List<Integer> neighborhoodIds;
