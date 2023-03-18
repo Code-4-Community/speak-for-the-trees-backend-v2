@@ -593,7 +593,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   @Override
   public List<FilterSitesResponse> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
-//    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
     // first find all valid siteIds and filter them down
     Map<Integer, Record3<Integer, String, Integer>> sitesRecords =
