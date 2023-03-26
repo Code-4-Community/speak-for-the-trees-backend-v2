@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.jooq.DSLContext;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
@@ -458,9 +459,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void addSites(JWTData userData, AddSitesRequest addSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    List<CSVSiteUpload> addSiteRequests = this.parseCSVString(addSitesRequest.getCsvText());
+    List<AddSiteRequest> addSiteRequests = this.parseCSVString(addSitesRequest.getCsvText());
 
-//    addSiteRequests.forEach(siteRequest -> addSite(userData, siteRequest));
+    addSiteRequests.forEach(siteRequest -> addSite(userData, siteRequest));
   }
 
   /**
@@ -471,17 +472,19 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * @throws HandledException if the given CSV string cannot be parsed properly
    * @return the parsed list of AddSiteRequests
    */
-  private List<CSVSiteUpload> parseCSVString(String sitesCSV) throws HandledException {
+  private List<AddSiteRequest> parseCSVString(String sitesCSV) throws HandledException {
     try {
       CsvMapper mapper = new CsvMapper();
       CsvSchema schema = CsvSchema.emptySchema().withHeader();
       MappingIterator<CSVSiteUpload> sitesIterator =
           mapper.readerFor(CSVSiteUpload.class).with(schema).readValues(sitesCSV);
-      List<CSVSiteUpload> addSiteRequests = sitesIterator.readAll();
+      List<CSVSiteUpload> csvSiteUploads = sitesIterator.readAll();
+      List<AddSiteRequest> addSiteRequests =
+          csvSiteUploads.stream().map(CSVSiteUpload::toAddSiteRequest).collect(Collectors.toList());
       if (addSiteRequests.size() == 0) {
         throw new InvalidCSVException();
       }
-//      addSiteRequests.forEach(siteRequest -> siteRequest.validate());
+      addSiteRequests.forEach(siteRequest -> siteRequest.validate());
       return addSiteRequests;
     } catch (HandledException | IOException e) {
       throw new InvalidCSVException();
