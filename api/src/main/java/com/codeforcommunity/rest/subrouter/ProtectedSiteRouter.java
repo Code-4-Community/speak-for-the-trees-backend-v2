@@ -53,6 +53,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerEditStewardship(router);
     registerNameSiteEntry(router);
     registerUploadSiteImage(router);
+    registerS3UploadSiteImage(router);
 
     return router;
   }
@@ -299,6 +300,22 @@ public class ProtectedSiteRouter implements IRouter {
             RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
 
     processor.uploadSiteImage(userData, siteId, uploadSiteImageRequest);
+
+    end(ctx.response(), 200);
+  }
+
+  private void registerS3UploadSiteImage(Router router) {
+    Route uploadImage = router.post("/:site_id/upload_image");
+    uploadImage.handler(this::handleS3UploadSiteImage);
+  }
+
+  private void handleS3UploadSiteImage(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+
+    UploadSiteImageRequest uploadSiteImageRequest =
+        RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
+
+    processor.uploadSiteImageS3(userData,  uploadSiteImageRequest);
 
     end(ctx.response(), 200);
   }

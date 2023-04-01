@@ -29,6 +29,7 @@ import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
 
+import com.codeforcommunity.requester.S3Requester;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
@@ -528,6 +529,6 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   @Override
   public void uploadSiteImageS3(JWTData userData, UploadSiteImageRequest request) {
      String publicImageUrl =
-     S3Requester.validateUploadImageToS3Sfft(request.getTitle(), request.getImage());
+     S3Requester.validateUploadImageToS3Sfft("Sample Image", request.getImage());
   }
 }

@@ -8,9 +8,16 @@ import java.util.List;
 
 public class UploadSiteImageRequest extends ApiDto {
   private String image;
+  private String title;
 
   public UploadSiteImageRequest(String image) {
     this.image = image;
+    this.title = "Image";
+  }
+
+  public UploadSiteImageRequest(String image, String title) {
+    this.image = image;
+    this.title = title;
   }
 
   public UploadSiteImageRequest() {}
