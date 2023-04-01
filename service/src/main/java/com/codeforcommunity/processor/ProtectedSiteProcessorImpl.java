@@ -18,6 +18,7 @@ import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
+import com.codeforcommunity.dto.site.CSVSiteUpload;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.FilterSitesRequest;
@@ -488,9 +489,11 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     try {
       CsvMapper mapper = new CsvMapper();
       CsvSchema schema = CsvSchema.emptySchema().withHeader();
-      MappingIterator<AddSiteRequest> sitesIterator =
-          mapper.readerFor(AddSiteRequest.class).with(schema).readValues(sitesCSV);
-      List<AddSiteRequest> addSiteRequests = sitesIterator.readAll();
+      MappingIterator<CSVSiteUpload> sitesIterator =
+          mapper.readerFor(CSVSiteUpload.class).with(schema).readValues(sitesCSV);
+      List<CSVSiteUpload> csvSiteUploads = sitesIterator.readAll();
+      List<AddSiteRequest> addSiteRequests =
+          csvSiteUploads.stream().map(CSVSiteUpload::toAddSiteRequest).collect(Collectors.toList());
       if (addSiteRequests.size() == 0) {
         throw new InvalidCSVException();
       }
