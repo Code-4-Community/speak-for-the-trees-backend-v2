@@ -28,10 +28,7 @@ public interface IProtectedSiteProcessor {
   void forceUnadoptSite(JWTData userData, int siteId);
 
   /** Adopts a tree for a child account through the parent account * */
-  void parentAdoptSite(
-      JWTData parentUserData,
-      int siteId,
-      ParentAdoptSiteRequest parentAdoptSiteRequest,
+  void parentAdoptSite(JWTData parentUserData, int siteId, ParentAdoptSiteRequest parentAdoptSiteRequest,
       Date dateAdopted);
 
   /** Get users adopted sites */
