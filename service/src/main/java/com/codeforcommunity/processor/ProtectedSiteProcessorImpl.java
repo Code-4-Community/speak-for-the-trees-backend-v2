@@ -19,6 +19,7 @@ import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
+import com.codeforcommunity.dto.site.CSVSiteUpload;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.FilterSitesRequest;
@@ -45,14 +46,11 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.jooq.Condition;
 import org.jooq.DSLContext;
-import org.jooq.Record2;
 import org.jooq.Result;
 import org.jooq.Table;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
@@ -483,16 +481,18 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * AddSiteRequests.
    *
    * @param sitesCSV CSV string to parse
-   * @return the parsed list of AddSiteRequests
    * @throws HandledException if the given CSV string cannot be parsed properly
+   * @return the parsed list of AddSiteRequests
    */
   private List<AddSiteRequest> parseCSVString(String sitesCSV) throws HandledException {
     try {
       CsvMapper mapper = new CsvMapper();
       CsvSchema schema = CsvSchema.emptySchema().withHeader();
-      MappingIterator<AddSiteRequest> sitesIterator =
-          mapper.readerFor(AddSiteRequest.class).with(schema).readValues(sitesCSV);
-      List<AddSiteRequest> addSiteRequests = sitesIterator.readAll();
+      MappingIterator<CSVSiteUpload> sitesIterator =
+          mapper.readerFor(CSVSiteUpload.class).with(schema).readValues(sitesCSV);
+      List<CSVSiteUpload> csvSiteUploads = sitesIterator.readAll();
+      List<AddSiteRequest> addSiteRequests =
+          csvSiteUploads.stream().map(CSVSiteUpload::toAddSiteRequest).collect(Collectors.toList());
       if (addSiteRequests.size() == 0) {
         throw new InvalidCSVException();
       }
@@ -596,7 +596,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   @Override
   public List<FilterSitesResponse> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
-    
+
     String ACTIVITY_COUNT_COLUMN = "act_count";
 
     Condition filterCondition = noCondition();
