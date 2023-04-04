@@ -6,16 +6,19 @@ public class FilterSitesResponse {
   private String address;
   private int adopterId;
   private String adopterName;
+
+  private String adopterEmail;
   private String dateAdopted;
   private int adopterActivityCount;
   private int neighborhoodId;
   private Integer lastActivityWeeks;
 
-  public FilterSitesResponse(int siteId, String address, int adopterId, String adopterName, String dateAdopted, int adopterActivityCount, int neighborhoodId, int lastActivityWeeks) {
+  public FilterSitesResponse(int siteId, String address, int adopterId, String adopterName, String adopterEmail, String dateAdopted, int adopterActivityCount, int neighborhoodId, int lastActivityWeeks) {
     this.siteId = siteId;
     this.address = address;
     this.adopterId = adopterId;
     this.adopterName = adopterName;
+    this.adopterEmail = adopterEmail;
     this.dateAdopted = dateAdopted;
     this.adopterActivityCount = adopterActivityCount;
     this.neighborhoodId = neighborhoodId;
@@ -52,6 +55,14 @@ public class FilterSitesResponse {
 
   public void setAdopterName(String adopterName) {
     this.adopterName = adopterName;
+  }
+
+  public String getAdopterEmail() {
+    return adopterEmail;
+  }
+
+  public void setAdopterEmail(String adopterEmail) {
+    this.adopterEmail = adopterEmail;
   }
 
   public String getDateAdopted() {

@@ -9,6 +9,7 @@ import static org.jooq.generated.Tables.SITE_ENTRIES;
 import static org.jooq.generated.Tables.SITE_IMAGES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
 import static org.jooq.generated.Tables.USERS;
+import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.max;
 import static org.jooq.impl.DSL.noCondition;
@@ -49,10 +50,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Record2;
-import org.jooq.Record3;
 import org.jooq.Result;
+import org.jooq.Table;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
@@ -128,7 +130,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * Check if the user is an admin or the adopter of the site with the given siteId
    *
    * @param userData the user's data
-   * @param siteId the ID of the site to check
+   * @param siteId   the ID of the site to check
    * @throws AuthException if the user is not an admin or the site's adopter
    */
   private void checkAdminOrSiteAdopter(JWTData userData, int siteId) throws AuthException {
@@ -167,7 +169,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * Throws an exception if the user account is not the parent of the other user account.
    *
    * @param parentUserId the user id of the parent account
-   * @param childUserId the user id of the child account
+   * @param childUserId  the user id of the child account
    */
   void checkParent(int parentUserId, int childUserId) {
     if (!isParent(parentUserId, childUserId)) {
@@ -180,7 +182,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * Determines if a user account is the parent of another user account.
    *
    * @param parentUserId the user id of the parent account
-   * @param childUserId the user if of the child account
+   * @param childUserId  the user if of the child account
    * @return true if the user is a parent of the other user, else false
    */
   boolean isParent(int parentUserId, int childUserId) {
@@ -481,8 +483,8 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * AddSiteRequests.
    *
    * @param sitesCSV CSV string to parse
-   * @throws HandledException if the given CSV string cannot be parsed properly
    * @return the parsed list of AddSiteRequests
+   * @throws HandledException if the given CSV string cannot be parsed properly
    */
   private List<AddSiteRequest> parseCSVString(String sitesCSV) throws HandledException {
     try {
@@ -594,103 +596,69 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   @Override
   public List<FilterSitesResponse> filterSites(JWTData userData, FilterSitesRequest filterSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    
+    String ACTIVITY_COUNT_COLUMN = "act_count";
 
-    // first find all valid siteIds and filter them down
-    Map<Integer, Record3<Integer, String, Integer>> sitesRecords =
-        db.select(SITES.ID, SITES.ADDRESS, SITES.NEIGHBORHOOD_ID).from(SITES)
-            .where(filterSitesRequest.getNeighborhoodIds() != null
-                ? SITES.NEIGHBORHOOD_ID.in(filterSitesRequest.getNeighborhoodIds())
-                : noCondition())
-            .fetchMap(SITES.ID);
+    Condition filterCondition = noCondition();
+    if (filterSitesRequest.getTreeSpecies() != null)
+      filterCondition = filterCondition.and(SITE_ENTRIES.SPECIES.in(filterSitesRequest.getTreeSpecies()));
+    if (filterSitesRequest.getAdoptedStart() != null)
+      filterCondition = filterCondition.and(ADOPTED_SITES.DATE_ADOPTED.ge(filterSitesRequest.getAdoptedStart()));
+    if (filterSitesRequest.getAdoptedEnd() != null)
+      filterCondition = filterCondition.and(ADOPTED_SITES.DATE_ADOPTED.le(filterSitesRequest.getAdoptedEnd()));
+    if (filterSitesRequest.getNeighborhoodIds() != null)
+      filterCondition = filterCondition.and(SITES.NEIGHBORHOOD_ID.in(filterSitesRequest.getNeighborhoodIds()));
 
-    Collection<Integer> filteredSiteIds = sitesRecords.keySet();
+    Condition stewardshipCondition = noCondition();
+    if (filterSitesRequest.getLastActivityStart() != null)
+      stewardshipCondition = stewardshipCondition.and(max(STEWARDSHIP.PERFORMED_ON).ge(filterSitesRequest.getLastActivityStart()));
+    if (filterSitesRequest.getLastActivityEnd() != null)
+      stewardshipCondition = stewardshipCondition.and(max(STEWARDSHIP.PERFORMED_ON).le(filterSitesRequest.getLastActivityEnd()));
 
-    Map<Integer, AdoptedSitesRecord> adoptedSites = filterByAdopted(filterSitesRequest.getAdoptedStart(), filterSitesRequest.getAdoptedEnd(), filteredSiteIds);
-    filteredSiteIds = adoptedSites.keySet();
-
-    Date activityStart = filterSitesRequest.getLastActivityStart();
-    Date activityEnd = filterSitesRequest.getLastActivityEnd();
-    Map<Integer, Record2<Date, Integer>> activities = filterByActivity(activityStart, activityEnd, filteredSiteIds);
-    filteredSiteIds = (activityStart == null && activityEnd == null) ? filteredSiteIds : activities.keySet();
-
-    filteredSiteIds = filterByTreeSpecies(filterSitesRequest.getTreeSpecies(), filteredSiteIds);
-
-    // now fetch data by site id
-    return filteredSiteIds.stream().map(siteId -> {
-      int adopterId, adopterActivityCount, neighborhoodId, lastActivityWeeks = -1;
-      String address, adopterName, dateAdopted;
-
-      address = sitesRecords.get(siteId).get(SITES.ADDRESS);
-      neighborhoodId = sitesRecords.get(siteId).get(SITES.NEIGHBORHOOD_ID);
-
-      AdoptedSitesRecord adoptedRecord = adoptedSites.get(siteId);
-
-      adopterId = adoptedRecord.get(ADOPTED_SITES.USER_ID);
-      dateAdopted = adoptedRecord.get(ADOPTED_SITES.DATE_ADOPTED).toString();
-
-      adopterActivityCount = db
-          .select(count().as("count"))
-          .from(STEWARDSHIP)
-          .where(STEWARDSHIP.SITE_ID.eq(siteId)).and(STEWARDSHIP.USER_ID.eq(adopterId))
-          .and(activityStart != null ? STEWARDSHIP.PERFORMED_ON.ge(activityStart) : noCondition())
-          .and(activityEnd != null ? STEWARDSHIP.PERFORMED_ON.le(activityEnd) : noCondition())
-          .fetchOne().get("count", Integer.class);
-
-      Record2<String, String> adopter = db
-          .select(USERS.FIRST_NAME, USERS.LAST_NAME)
-          .from(USERS)
-          .where(USERS.ID.eq(adopterId)).fetchOne();
-      adopterName = adopter.get(USERS.FIRST_NAME) + " " + adopter.get(USERS.LAST_NAME);
-
-      if (activities.containsKey(siteId)) {
-        Date latestActivity = activities.get(siteId).get(STEWARDSHIP.PERFORMED_ON);
-        lastActivityWeeks = (int) ChronoUnit.WEEKS.between(latestActivity.toLocalDate(), LocalDate.now());
-      }
-
-      return new FilterSitesResponse(siteId, address, adopterId, adopterName, dateAdopted, adopterActivityCount, neighborhoodId, lastActivityWeeks);
-    }).collect(Collectors.toList());
-  }
-
-  private Map<Integer, AdoptedSitesRecord> filterByAdopted(Date adoptedStart, Date adoptedEnd, Collection<Integer> filteredSiteIds) {
-    return db
-        .selectFrom(ADOPTED_SITES)
-        .where(ADOPTED_SITES.SITE_ID.in(filteredSiteIds))
-        .and(adoptedStart != null ? ADOPTED_SITES.DATE_ADOPTED.greaterOrEqual(adoptedStart) : noCondition())
-        .and(adoptedEnd != null ? ADOPTED_SITES.DATE_ADOPTED.lessOrEqual(adoptedEnd) : noCondition())
-        .fetchMap(ADOPTED_SITES.SITE_ID);
-  }
-
-  private Map<Integer, Record2<Date, Integer>> filterByActivity(Date activityStart, Date activityEnd, Collection<Integer> filteredSiteIds) {
-    Result<Record2<Date, Integer>> latestActivities = db
-        .select(max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON.getName()), STEWARDSHIP.SITE_ID)
+    Table<org.jooq.Record3<Integer, Integer, Integer>> activityCounts = db
+        .select(count().as(ACTIVITY_COUNT_COLUMN), STEWARDSHIP.SITE_ID, STEWARDSHIP.USER_ID)
         .from(STEWARDSHIP)
-        .where(STEWARDSHIP.SITE_ID.in(filteredSiteIds))
-        .groupBy(STEWARDSHIP.SITE_ID)
+        .groupBy(STEWARDSHIP.SITE_ID, STEWARDSHIP.USER_ID).asTable("activityCounts");
+
+    Result<org.jooq.Record12<Integer, String, Integer, Integer, Date, Date, Timestamp, String, String, String, String, Integer>>
+        records = db
+        .select(SITES.ID, SITES.ADDRESS, SITES.NEIGHBORHOOD_ID, ADOPTED_SITES.USER_ID, ADOPTED_SITES.DATE_ADOPTED,
+            max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON),
+            max(SITE_ENTRIES.UPDATED_AT).as(SITE_ENTRIES.UPDATED_AT.getName()),
+            SITE_ENTRIES.SPECIES, USERS.FIRST_NAME, USERS.LAST_NAME, USERS.EMAIL, coalesce(activityCounts.field(ACTIVITY_COUNT_COLUMN, Integer.class), 0).as(ACTIVITY_COUNT_COLUMN))
+        .from(ADOPTED_SITES)
+        .join(SITES).on(ADOPTED_SITES.SITE_ID.eq(SITES.ID))
+        .join(USERS).on(ADOPTED_SITES.USER_ID.eq(USERS.ID))
+        .leftJoin(STEWARDSHIP).on(ADOPTED_SITES.SITE_ID.eq(STEWARDSHIP.SITE_ID))
+        .join(SITE_ENTRIES).on(ADOPTED_SITES.SITE_ID.eq(SITE_ENTRIES.SITE_ID))
+        .leftJoin(activityCounts).on(
+            ADOPTED_SITES.SITE_ID.eq(activityCounts.field(STEWARDSHIP.SITE_ID))
+                .and(ADOPTED_SITES.USER_ID.eq(activityCounts.field(STEWARDSHIP.USER_ID))))
+        .where(filterCondition)
+        .groupBy(SITES.ID, SITES.ADDRESS, SITES.NEIGHBORHOOD_ID, ADOPTED_SITES.USER_ID, ADOPTED_SITES.DATE_ADOPTED, SITE_ENTRIES.SPECIES, USERS.FIRST_NAME, USERS.LAST_NAME, USERS.EMAIL, activityCounts.field(ACTIVITY_COUNT_COLUMN))
+        .having(stewardshipCondition)
         .fetch();
 
-    if (activityStart == null && activityEnd == null) {
-      return latestActivities.intoMap(STEWARDSHIP.SITE_ID);
-    }
+    return records.stream().map(rec -> {
+      String adopterName = rec.get(USERS.FIRST_NAME) + ' ' + rec.get(USERS.LAST_NAME);
+      int lastActivityWeeks = rec.get(STEWARDSHIP.PERFORMED_ON) != null
+          ? (int) ChronoUnit.WEEKS.between(rec.get(STEWARDSHIP.PERFORMED_ON).toLocalDate(), LocalDate.now())
+          : -1;
+      String dateAdopted = rec.get(ADOPTED_SITES.DATE_ADOPTED) != null
+          ? rec.get(ADOPTED_SITES.DATE_ADOPTED).toString()
+          : "";
 
-    return latestActivities.stream()
-        .filter(r -> {
-          Date activityDate = r.get(STEWARDSHIP.PERFORMED_ON);
-          return (activityStart == null || activityDate.compareTo(activityStart) >= 0)
-              && (activityEnd == null || activityDate.compareTo(activityEnd) <= 0);
-        }).collect(Collectors.toMap(r -> r.get(STEWARDSHIP.SITE_ID), r -> r));
-  }
-
-  private Collection<Integer> filterByTreeSpecies(List<String> treeSpecies, Collection<Integer> filteredSiteIds) {
-    if (treeSpecies == null) {
-      return filteredSiteIds;
-    }
-
-    return db
-        .select(max(SITE_ENTRIES.ID).as(SITE_ENTRIES.ID.getName()), SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-        .from(SITE_ENTRIES)
-        .where(SITE_ENTRIES.SITE_ID.in(filteredSiteIds))
-        .and(SITE_ENTRIES.SPECIES.in(treeSpecies))
-        .groupBy(SITE_ENTRIES.SITE_ID, SITE_ENTRIES.SPECIES)
-        .fetch(SITE_ENTRIES.SITE_ID);
+      return new FilterSitesResponse(
+          rec.get(SITES.ID),
+          rec.get(SITES.ADDRESS),
+          rec.get(ADOPTED_SITES.USER_ID),
+          adopterName,
+          rec.get(USERS.EMAIL),
+          dateAdopted,
+          rec.get(ACTIVITY_COUNT_COLUMN, Integer.class),
+          rec.get(SITES.NEIGHBORHOOD_ID),
+          lastActivityWeeks
+      );
+    }).collect(Collectors.toList());
   }
 }
