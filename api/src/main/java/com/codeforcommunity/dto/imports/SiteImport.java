@@ -76,6 +76,8 @@ public class SiteImport extends ApiDto {
   private String treeDedicatedTo;
   private Date plantingDate;
   private String treeName;
+
+  /* Cambridge fields */
   private Integer trunks;
   private String speciesShort;
   private String location;
@@ -171,6 +173,8 @@ public class SiteImport extends ApiDto {
       String treeDedicatedTo,
       Date plantingDate,
       String treeName,
+
+      /* Cambridge fields */
       Integer trunks,
       String speciesShort,
       String location,
@@ -264,6 +268,8 @@ public class SiteImport extends ApiDto {
     this.treeDedicatedTo = treeDedicatedTo;
     this.plantingDate = plantingDate;
     this.treeName = treeName;
+
+    /* Cambridge fields */
     this.trunks = trunks;
     this.speciesShort = speciesShort;
     this.location = location;
@@ -753,6 +759,7 @@ public class SiteImport extends ApiDto {
     this.treeName = treeName;
   }
 
+  /* Cambridge fields */
   public Integer getTrunks() {
     return trunks;
   }

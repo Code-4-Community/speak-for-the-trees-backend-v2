@@ -32,14 +32,8 @@ import com.codeforcommunity.propertiesLoader.PropertiesLoader;
 import com.codeforcommunity.requester.Emailer;
 import com.codeforcommunity.rest.ApiRouter;
 import io.vertx.core.Vertx;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Properties;
 import org.jooq.DSLContext;
-import org.jooq.conf.MappedSchema;
-import org.jooq.conf.RenderMapping;
-import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
 
 public class ServiceMain {
@@ -55,7 +49,7 @@ public class ServiceMain {
   }
 
   /** Start the server, get everything going. */
-  public void initialize() throws ClassNotFoundException, SQLException {
+  public void initialize() throws ClassNotFoundException {
     updateSystemProperties();
     createDatabaseConnection();
     initializeServer();
@@ -72,7 +66,7 @@ public class ServiceMain {
   }
 
   /** Connect to the database and create a DSLContext so jOOQ can interact with it. */
-  private void createDatabaseConnection() throws ClassNotFoundException, SQLException {
+  private void createDatabaseConnection() throws ClassNotFoundException {
     // Load configuration from db.properties file
     String databaseDriver = PropertiesLoader.loadProperty("database_driver");
     String databaseUrl = PropertiesLoader.loadProperty("database_url");
@@ -83,12 +77,7 @@ public class ServiceMain {
     Class.forName(databaseDriver);
 
     // Create a DSLContext from the above configuration
-    Connection conn = DriverManager.getConnection(databaseUrl, databaseUsername, databasePassword);
-    String schema = "cambridge"; // TODO toggle with env variable
-    MappedSchema mappedSchema = new MappedSchema().withInput("").withOutput(schema);
-    Settings settings =
-        new Settings().withRenderMapping(new RenderMapping().withSchemata(mappedSchema));
-    this.db = DSL.using(conn, settings);
+    this.db = DSL.using(databaseUrl, databaseUsername, databasePassword);
   }
 
   /** Initialize the server and get all the supporting classes going. */

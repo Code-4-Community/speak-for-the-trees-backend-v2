@@ -122,6 +122,8 @@ public class SiteProcessorImpl implements ISiteProcessor {
                   record.getSiteNotes(),
                   record.getTreeName(),
                   adopter,
+
+                  /* Cambridge fields */
                   record.getTrunks(),
                   record.getSpeciesShort(),
                   record.getLocation(),

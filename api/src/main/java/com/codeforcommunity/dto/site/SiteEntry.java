@@ -51,6 +51,8 @@ public class SiteEntry {
   private final String siteNotes;
   private final String treeName;
   private final String adopter;
+
+  /* Cambridge fields */
   private final Integer trunks;
   private final String speciesShort;
   private final String location;
@@ -133,6 +135,8 @@ public class SiteEntry {
       String siteNotes,
       String treeName,
       String adopter,
+
+      /* Cambridge fields */
       Integer trunks,
       String speciesShort,
       String location,
@@ -213,6 +217,8 @@ public class SiteEntry {
     this.siteNotes = siteNotes;
     this.treeName = treeName;
     this.adopter = adopter;
+
+    /* Cambridge fields */
     this.trunks = trunks;
     this.speciesShort = speciesShort;
     this.location = location;
@@ -424,6 +430,7 @@ public class SiteEntry {
     return adopter;
   }
 
+  /* Cambridge fields */
   public Integer getTrunks() {
     return trunks;
   }

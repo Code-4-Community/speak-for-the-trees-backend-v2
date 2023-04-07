@@ -251,6 +251,8 @@ public class ImportProcessorImpl implements IImportProcessor {
               siteEntry.setTreeDedicatedTo(siteImport.getTreeDedicatedTo());
               siteEntry.setPlantingDate(siteImport.getPlantingDate());
               siteEntry.setTreeName(siteImport.getTreeName());
+
+              /* Cambridge fields */
               siteEntry.setTrunks(siteImport.getTrunks());
               siteEntry.setSpeciesShort(siteImport.getSpeciesShort());
               siteEntry.setLocation(siteImport.getLocation());
