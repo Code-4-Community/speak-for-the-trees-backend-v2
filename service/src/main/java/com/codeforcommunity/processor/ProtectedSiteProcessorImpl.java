@@ -6,6 +6,7 @@ import static org.jooq.generated.Tables.NEIGHBORHOODS;
 import static org.jooq.generated.Tables.PARENT_ACCOUNTS;
 import static org.jooq.generated.Tables.SITES;
 import static org.jooq.generated.Tables.SITE_ENTRIES;
+import static org.jooq.generated.Tables.SITE_IMAGES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
 import static org.jooq.generated.Tables.USERS;
 import static org.jooq.impl.DSL.max;
@@ -15,6 +16,7 @@ import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
+import com.codeforcommunity.dto.site.CSVSiteUpload;
 import com.codeforcommunity.dto.site.EditSiteRequest;
 import com.codeforcommunity.dto.site.EditStewardshipRequest;
 import com.codeforcommunity.dto.site.NameSiteEntryRequest;
@@ -25,12 +27,19 @@ import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
+import com.codeforcommunity.exceptions.HandledException;
+import com.codeforcommunity.exceptions.InvalidCSVException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+import com.fasterxml.jackson.databind.MappingIterator;
+import com.fasterxml.jackson.dataformat.csv.CsvMapper;
+import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.jooq.DSLContext;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
@@ -89,6 +98,17 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   private void checkStewardshipExists(int activityId) {
     if (!db.fetchExists(db.selectFrom(STEWARDSHIP).where(STEWARDSHIP.ID.eq(activityId)))) {
       throw new ResourceDoesNotExistException(activityId, "Stewardship Activity");
+    }
+  }
+
+  /**
+   * Check if an image exists
+   *
+   * @param imageId to check
+   */
+  private void checkImageExists(int imageId) {
+    if (!db.fetchExists(db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)))) {
+      throw new ResourceDoesNotExistException(imageId, "Site Image");
     }
   }
 
@@ -439,12 +459,36 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void addSites(JWTData userData, AddSitesRequest addSitesRequest) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    addSitesRequest
-        .getSites()
-        .forEach(
-            newSite -> {
-              addSite(userData, newSite);
-            });
+    List<AddSiteRequest> addSiteRequests = this.parseCSVString(addSitesRequest.getCsvText());
+
+    addSiteRequests.forEach(siteRequest -> addSite(userData, siteRequest));
+  }
+
+  /**
+   * Parses the given CSV string containing data on a site and site entry to a list of
+   * AddSiteRequests.
+   *
+   * @param sitesCSV CSV string to parse
+   * @throws HandledException if the given CSV string cannot be parsed properly
+   * @return the parsed list of AddSiteRequests
+   */
+  private List<AddSiteRequest> parseCSVString(String sitesCSV) throws HandledException {
+    try {
+      CsvMapper mapper = new CsvMapper();
+      CsvSchema schema = CsvSchema.emptySchema().withHeader();
+      MappingIterator<CSVSiteUpload> sitesIterator =
+          mapper.readerFor(CSVSiteUpload.class).with(schema).readValues(sitesCSV);
+      List<CSVSiteUpload> csvSiteUploads = sitesIterator.readAll();
+      List<AddSiteRequest> addSiteRequests =
+          csvSiteUploads.stream().map(CSVSiteUpload::toAddSiteRequest).collect(Collectors.toList());
+      if (addSiteRequests.size() == 0) {
+        throw new InvalidCSVException();
+      }
+      addSiteRequests.forEach(siteRequest -> siteRequest.validate());
+      return addSiteRequests;
+    } catch (HandledException | IOException e) {
+      throw new InvalidCSVException();
+    }
   }
 
   @Override
@@ -527,5 +571,13 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     // SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
 
     // site.store();
+  }
+
+  @Override
+  public void deleteSiteImage(JWTData userData, int imageId) {
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    checkImageExists(imageId);
+
+    db.deleteFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)).execute();
   }
 }
