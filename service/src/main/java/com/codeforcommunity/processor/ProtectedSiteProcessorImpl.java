@@ -615,6 +615,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     if (filterSitesRequest.getLastActivityEnd() != null)
       stewardshipCondition = stewardshipCondition.and(max(STEWARDSHIP.PERFORMED_ON).le(filterSitesRequest.getLastActivityEnd()));
 
+    // Table containing the number of stewardship activities performed by a user on a site
     Table<org.jooq.Record3<Integer, Integer, Integer>> activityCounts = db
         .select(count().as(ACTIVITY_COUNT_COLUMN), STEWARDSHIP.SITE_ID, STEWARDSHIP.USER_ID)
         .from(STEWARDSHIP)
@@ -624,7 +625,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
         records = db
         .select(SITES.ID, SITES.ADDRESS, SITES.NEIGHBORHOOD_ID, ADOPTED_SITES.USER_ID, ADOPTED_SITES.DATE_ADOPTED,
             max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON),
-            max(SITE_ENTRIES.UPDATED_AT).as(SITE_ENTRIES.UPDATED_AT.getName()),
+            max(SITE_ENTRIES.UPDATED_AT).as(SITE_ENTRIES.UPDATED_AT),
             SITE_ENTRIES.SPECIES, USERS.FIRST_NAME, USERS.LAST_NAME, USERS.EMAIL, coalesce(activityCounts.field(ACTIVITY_COUNT_COLUMN, Integer.class), 0).as(ACTIVITY_COUNT_COLUMN))
         .from(ADOPTED_SITES)
         .join(SITES).on(ADOPTED_SITES.SITE_ID.eq(SITES.ID))
@@ -641,9 +642,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
     return records.stream().map(rec -> {
       String adopterName = rec.get(USERS.FIRST_NAME) + ' ' + rec.get(USERS.LAST_NAME);
-      int lastActivityWeeks = rec.get(STEWARDSHIP.PERFORMED_ON) != null
+      Integer lastActivityWeeks = rec.get(STEWARDSHIP.PERFORMED_ON) != null
           ? (int) ChronoUnit.WEEKS.between(rec.get(STEWARDSHIP.PERFORMED_ON).toLocalDate(), LocalDate.now())
-          : -1;
+          : null;
       String dateAdopted = rec.get(ADOPTED_SITES.DATE_ADOPTED) != null
           ? rec.get(ADOPTED_SITES.DATE_ADOPTED).toString()
           : "";

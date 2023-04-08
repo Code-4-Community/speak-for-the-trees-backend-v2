@@ -13,7 +13,7 @@ public class FilterSitesResponse {
   private int neighborhoodId;
   private Integer lastActivityWeeks;
 
-  public FilterSitesResponse(int siteId, String address, int adopterId, String adopterName, String adopterEmail, String dateAdopted, int adopterActivityCount, int neighborhoodId, int lastActivityWeeks) {
+  public FilterSitesResponse(int siteId, String address, int adopterId, String adopterName, String adopterEmail, String dateAdopted, int adopterActivityCount, int neighborhoodId, Integer lastActivityWeeks) {
     this.siteId = siteId;
     this.address = address;
     this.adopterId = adopterId;
@@ -22,7 +22,7 @@ public class FilterSitesResponse {
     this.dateAdopted = dateAdopted;
     this.adopterActivityCount = adopterActivityCount;
     this.neighborhoodId = neighborhoodId;
-    if (lastActivityWeeks >= 0) this.lastActivityWeeks = lastActivityWeeks;
+    this.lastActivityWeeks = lastActivityWeeks;
   }
 
   public int getSiteId() {
