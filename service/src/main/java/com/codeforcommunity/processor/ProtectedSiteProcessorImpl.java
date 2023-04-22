@@ -594,7 +594,6 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     if (filterSitesRequest.getNeighborhoodIds() != null)
       filterCondition =
           filterCondition.and(SITES.NEIGHBORHOOD_ID.in(filterSitesRequest.getNeighborhoodIds()));
-      filterCondition = filterCondition.and(SITES.NEIGHBORHOOD_ID.in(filterSitesRequest.getNeighborhoodIds()));
     if (filterSitesRequest.getActivityCountMin() != null)
       filterCondition = filterCondition.and(
           activityCounts.field(ACTIVITY_COUNT_COLUMN, Integer.class).ge(filterSitesRequest.getActivityCountMin()));
