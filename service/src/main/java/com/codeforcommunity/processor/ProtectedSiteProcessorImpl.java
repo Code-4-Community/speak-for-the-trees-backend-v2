@@ -584,7 +584,8 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
     Condition filterCondition = noCondition();
     if (filterSitesRequest.getTreeCommonNames() != null)
-      filterCondition = filterCondition.and(SITE_ENTRIES.COMMON_NAME.in(filterSitesRequest.getTreeCommonNames()));
+      filterCondition =
+          filterCondition.and(SITE_ENTRIES.COMMON_NAME.in(filterSitesRequest.getTreeCommonNames()));
     if (filterSitesRequest.getAdoptedStart() != null)
       filterCondition =
           filterCondition.and(ADOPTED_SITES.DATE_ADOPTED.ge(filterSitesRequest.getAdoptedStart()));
