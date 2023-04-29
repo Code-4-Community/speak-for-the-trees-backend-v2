@@ -389,6 +389,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     sitesRecord.setZip(addSiteRequest.getZip());
     sitesRecord.setAddress(addSiteRequest.getAddress());
     sitesRecord.setNeighborhoodId(addSiteRequest.getNeighborhoodId());
+    sitesRecord.setOwner(addSiteRequest.getOwner().toString());
 
     sitesRecord.store();
 

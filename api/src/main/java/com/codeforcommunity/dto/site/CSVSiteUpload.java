@@ -1,5 +1,6 @@
 package com.codeforcommunity.dto.site;
 
+import com.codeforcommunity.enums.SiteOwner;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -16,6 +17,7 @@ public class CSVSiteUpload {
   private String zip;
   private String address;
   private String neighborhood;
+  private SiteOwner owner;
 
   /* site entries columns */
   private Boolean treePresent;
@@ -108,7 +110,8 @@ public class CSVSiteUpload {
       String city,
       String zip,
       String address,
-      String neighborhood) {
+      String neighborhood,
+      SiteOwner owner) {
     this.blockId = blockId;
     this.lat = lat;
     this.lng = lng;
@@ -116,6 +119,7 @@ public class CSVSiteUpload {
     this.zip = zip;
     this.address = address;
     this.neighborhood = neighborhood;
+    this.owner = owner;
 
     this.treePresent = treePresent;
     this.status = status;
@@ -210,7 +214,8 @@ public class CSVSiteUpload {
         city,
         zip,
         address,
-        neighborhoodId);
+        neighborhoodId,
+        owner);
   }
 
   public Integer getBlockId() {
