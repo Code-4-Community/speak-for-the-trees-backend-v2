@@ -337,6 +337,8 @@ public class ProtectedSiteRouter implements IRouter {
   private void handleFilterSites(RoutingContext ctx) {
     JWTData userData = ctx.get("jwt_data");
 
+    int activityCountMin = RestFunctions.getRequestParameterAsInt(ctx.request(), "activityCountMin");
+
     Optional<List<String>> treeCommonNames =
         RestFunctions.getOptionalQueryParam(
             ctx,
@@ -352,8 +354,6 @@ public class ProtectedSiteRouter implements IRouter {
         RestFunctions.getOptionalQueryParam(ctx, "lastActivityEnd", Date::valueOf);
     Optional<List<Integer>> neighborhoodIds =
         RestFunctions.getOptionalQueryParam(ctx, "neighborhoodIds", (string) -> Arrays.stream(string.split(",")).map(Integer::parseInt).collect(Collectors.toList()));
-    Optional<Integer> activityCountMin =
-        RestFunctions.getOptionalQueryParam(ctx, "activityCountMin", Integer::parseInt);
     Optional<Integer> activityCountMax =
         RestFunctions.getOptionalQueryParam(ctx, "activityCountMax", Integer::parseInt);
 
@@ -364,7 +364,7 @@ public class ProtectedSiteRouter implements IRouter {
         lastActivityStart.orElse(null),
         lastActivityEnd.orElse(null),
         neighborhoodIds.orElse(null),
-        activityCountMin.orElse(null),
+        activityCountMin,
         activityCountMax.orElse(null)
     );
 

@@ -24,7 +24,7 @@ public class FilterSitesRequest extends ApiDto {
 
   private List<Integer> neighborhoodIds;
 
-  private Integer activityCountMin;
+  private int activityCountMin;
 
   private Integer activityCountMax;
 
@@ -97,11 +97,11 @@ public class FilterSitesRequest extends ApiDto {
     this.neighborhoodIds = neighborhoodIds;
   }
 
-  public Integer getActivityCountMin() {
+  public int getActivityCountMin() {
     return activityCountMin;
   }
 
-  public void setActivityCountMin(Integer activityCountMin) {
+  public void setActivityCountMin(int activityCountMin) {
     this.activityCountMin = activityCountMin;
   }
 
