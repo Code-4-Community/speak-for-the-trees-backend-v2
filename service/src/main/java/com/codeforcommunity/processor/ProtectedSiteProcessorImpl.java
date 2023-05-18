@@ -441,6 +441,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     site.setLat(editSiteRequest.getLat());
     site.setLng(editSiteRequest.getLng());
     site.setNeighborhoodId(editSiteRequest.getNeighborhoodId());
+    site.setOwner(editSiteRequest.getOwner().toString());
 
     site.store();
   }
