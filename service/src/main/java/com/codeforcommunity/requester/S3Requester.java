@@ -299,8 +299,9 @@ public class S3Requester {
     } catch(AmazonServiceException e) {
       throw new InvalidURLException();
     }
+    String name_no_suffix = name.substring(0, (name.length()-"_template.html".length()));
 
-    String overwriteResponse = uploadHTML(name, directoryName, adminID, htmlContent);
+    String overwriteResponse = uploadHTML(name_no_suffix, directoryName, adminID, htmlContent);
     return overwriteResponse;
   }
 }
