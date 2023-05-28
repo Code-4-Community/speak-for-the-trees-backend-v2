@@ -17,4 +17,14 @@ public class ProtectedEmailerProcessorImpl extends AbstractProcessor
         userData.getUserId(),
         addTemplateRequest.getTemplate());
   }
+
+  @Override
+  public void editTemplate(JWTData userData, String templateName, AddTemplateRequest addTemplateRequest) {
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    S3Requester.overwriteHTML(
+            templateName,
+            "email_templates",
+            userData.getUserId(),
+            addTemplateRequest.getTemplate());
+  }
 }

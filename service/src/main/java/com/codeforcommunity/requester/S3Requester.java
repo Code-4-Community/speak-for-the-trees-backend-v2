@@ -1,5 +1,6 @@
 package com.codeforcommunity.requester;
 
+import com.amazonaws.AmazonServiceException;
 import com.amazonaws.SdkClientException;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
@@ -10,6 +11,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.codeforcommunity.aws.EncodedImage;
 import com.codeforcommunity.exceptions.BadRequestHTMLException;
 import com.codeforcommunity.exceptions.BadRequestImageException;
+import com.codeforcommunity.exceptions.InvalidURLException;
 import com.codeforcommunity.exceptions.S3FailedUploadException;
 import com.codeforcommunity.propertiesLoader.PropertiesLoader;
 
@@ -272,5 +274,33 @@ public class S3Requester {
     tempFile.delete();
 
     return String.format("%s/%s/%s", externs.getBucketPublicUrl(), directoryName, name);
+  }
+
+  /**
+   * Validate the given string encoding of HTML and overwrite an existing file in the user upload S3 bucket.
+   *
+   * @param name the name of the existing file to overwrite in S3
+   * @param directoryName the directory of the existing file in S3 (without leading or trailing '/').
+   * @param adminID the desired ID of the user overwriting the HTML file
+   * @param htmlContent the string encoding of the new HTML to overwrite with.
+   * @return HTML file URL if overwriting was successful.
+   * @throws InvalidURLException if the file does not exist.
+   * @throws BadRequestHTMLException if the string to HTML decoding failed.
+   * @throws S3FailedUploadException if the upload to S3 failed.
+   */
+  public static String overwriteHTML(
+          String name, String directoryName, Integer adminID, String htmlContent) {
+
+    String HTMLPath = directoryName + "/" + name;
+
+    // if the object does not exist, it throws a 403 for metadata?
+    try {
+      Boolean htmlExists = externs.getS3Client().doesObjectExist(externs.getBucketPublic(), HTMLPath);
+    } catch(AmazonServiceException e) {
+      throw new InvalidURLException();
+    }
+
+    String overwriteResponse = uploadHTML(name, directoryName, adminID, htmlContent);
+    return overwriteResponse;
   }
 }

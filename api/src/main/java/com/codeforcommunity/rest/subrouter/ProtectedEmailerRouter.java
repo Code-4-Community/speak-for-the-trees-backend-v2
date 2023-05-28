@@ -25,6 +25,7 @@ public class ProtectedEmailerRouter implements IRouter {
     Router router = Router.router(vertx);
 
     registerAddTemplate(router);
+    registerEditTemplate(router);
 
     return router;
   }
@@ -40,6 +41,22 @@ public class ProtectedEmailerRouter implements IRouter {
         RestFunctions.getJsonBodyAsClass(ctx, AddTemplateRequest.class);
 
     processor.addTemplate(userData, addTemplateRequest);
+
+    end(ctx.response(), 200);
+  }
+
+  private void registerEditTemplate(Router router) {
+    Route editTemplate = router.post("/edit_template/:template_name");
+    editTemplate.handler(this::handleEditTemplate);
+  }
+
+  private void handleEditTemplate(RoutingContext ctx) {
+    JWTData userData = ctx.get("jwt_data");
+    String templateName = RestFunctions.getRequestParameterAsString(ctx.request(), "template_name");
+    AddTemplateRequest editTemplateRequest =
+            RestFunctions.getJsonBodyAsClass(ctx, AddTemplateRequest.class);
+
+    processor.editTemplate(userData, templateName, editTemplateRequest);
 
     end(ctx.response(), 200);
   }
