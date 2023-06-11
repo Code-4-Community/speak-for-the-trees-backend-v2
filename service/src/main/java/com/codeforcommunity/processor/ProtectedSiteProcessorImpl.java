@@ -569,7 +569,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   private SiteEntriesRecord latestSiteEntry(int siteId) {
     return db.selectFrom(SITE_ENTRIES)
         .where(SITE_ENTRIES.SITE_ID.eq(siteId))
-        .orderBy(SITE_ENTRIES.UPDATED_AT.desc())
+        .orderBy(SITE_ENTRIES.CREATED_AT.desc())
         .fetchInto(SiteEntriesRecord.class)
         .get(0);
   }
