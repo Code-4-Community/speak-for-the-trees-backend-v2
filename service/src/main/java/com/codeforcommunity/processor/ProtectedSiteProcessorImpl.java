@@ -402,6 +402,8 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     siteEntriesRecord.setId(newSiteEntriesId);
     siteEntriesRecord.setUserId(userData.getUserId());
     siteEntriesRecord.setSiteId(sitesRecord.getId());
+    siteEntriesRecord.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+    siteEntriesRecord.setUpdatedAt(new Timestamp(System.currentTimeMillis()));
     populateSiteEntry(siteEntriesRecord, addSiteRequest);
 
     siteEntriesRecord.store();
@@ -531,24 +533,24 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     checkSiteExists(siteId);
     checkAdminOrSiteAdopter(userData, siteId);
 
-    SiteEntriesRecord siteEntry =
+    SiteEntriesRecord latestSiteEntry =
         db.selectFrom(SITE_ENTRIES)
             .where(SITE_ENTRIES.SITE_ID.eq(siteId))
-            .orderBy(SITE_ENTRIES.UPDATED_AT.desc())
+            .orderBy(SITE_ENTRIES.CREATED_AT.desc())
             .fetchOne();
 
-    if (siteEntry == null) {
+    if (latestSiteEntry == null) {
       throw new LinkedResourceDoesNotExistException(
           "Site Entry", userData.getUserId(), "User", siteId, "Site");
     }
 
     if (nameSiteEntryRequest.getName().isEmpty()) {
-      siteEntry.setTreeName(null);
+      latestSiteEntry.setTreeName(null);
     } else {
-      siteEntry.setTreeName(nameSiteEntryRequest.getName());
+      latestSiteEntry.setTreeName(nameSiteEntryRequest.getName());
     }
 
-    siteEntry.store();
+    latestSiteEntry.store();
   }
 
   @Override
@@ -649,7 +651,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
                     ADOPTED_SITES.USER_ID,
                     ADOPTED_SITES.DATE_ADOPTED,
                     max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON),
-                    max(SITE_ENTRIES.UPDATED_AT).as(SITE_ENTRIES.UPDATED_AT),
+                    max(SITE_ENTRIES.CREATED_AT).as(SITE_ENTRIES.CREATED_AT),
                     SITE_ENTRIES.COMMON_NAME,
                     USERS.FIRST_NAME,
                     USERS.LAST_NAME,
