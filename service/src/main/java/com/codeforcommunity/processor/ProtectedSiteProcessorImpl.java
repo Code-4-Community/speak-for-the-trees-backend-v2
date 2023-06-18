@@ -236,9 +236,23 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       throw new WrongAdoptionStatusException(false);
     }
 
-    db.deleteFrom(ADOPTED_SITES)
-        .where(ADOPTED_SITES.USER_ID.eq(userData.getUserId()))
-        .and(ADOPTED_SITES.SITE_ID.eq(siteId))
+    db.transaction(
+        configuration -> {
+          db.deleteFrom(ADOPTED_SITES)
+              .where(ADOPTED_SITES.USER_ID.eq(userData.getUserId()))
+              .and(ADOPTED_SITES.SITE_ID.eq(siteId))
+              .execute();
+
+          this.resetTreeName(siteId);
+        });
+  }
+
+  private void resetTreeName(int siteId) {
+    int latestSiteEntryId = this.latestSiteEntry(siteId).getId();
+
+    db.update(SITE_ENTRIES)
+        .setNull(SITE_ENTRIES.TREE_NAME)
+        .where(SITE_ENTRIES.ID.eq(latestSiteEntryId))
         .execute();
   }
 
@@ -265,7 +279,13 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       throw new AuthException("User does not have the required privilege level.");
     }
 
-    db.deleteFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)).execute();
+    db.transaction(
+        configuration -> {
+          db.deleteFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)).execute();
+
+          this.resetTreeName(siteId);
+        }
+    );
   }
 
   @Override
@@ -533,12 +553,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     checkSiteExists(siteId);
     checkAdminOrSiteAdopter(userData, siteId);
 
-    SiteEntriesRecord latestSiteEntry =
-        db.selectFrom(SITE_ENTRIES)
-            .where(SITE_ENTRIES.SITE_ID.eq(siteId))
-            .orderBy(SITE_ENTRIES.CREATED_AT.desc())
-            .fetchOne();
-
+    SiteEntriesRecord latestSiteEntry = this.latestSiteEntry(siteId);
     if (latestSiteEntry == null) {
       throw new LinkedResourceDoesNotExistException(
           "Site Entry", userData.getUserId(), "User", siteId, "Site");
@@ -551,6 +566,14 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     }
 
     latestSiteEntry.store();
+  }
+
+  private SiteEntriesRecord latestSiteEntry(int siteId) {
+    return db.selectFrom(SITE_ENTRIES)
+        .where(SITE_ENTRIES.SITE_ID.eq(siteId))
+        .orderBy(SITE_ENTRIES.CREATED_AT.desc())
+        .fetchInto(SiteEntriesRecord.class)
+        .get(0);
   }
 
   @Override
