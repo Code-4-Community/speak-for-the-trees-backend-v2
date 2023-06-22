@@ -299,18 +299,18 @@ public class ProtectedSiteRouter implements IRouter {
   }
 
   private void registerUploadSiteImage(Router router) {
-    Route uploadImage = router.post("/:site_id/upload_image");
+    Route uploadImage = router.post("/:site_entry_id/upload_image");
     uploadImage.handler(this::handleUploadSiteImage);
   }
 
   private void handleUploadSiteImage(RoutingContext ctx) {
     JWTData userData = ctx.get("jwt_data");
-    int siteId = RestFunctions.getRequestParameterAsInt(ctx.request(), "site_id");
+    int siteEntryId = RestFunctions.getRequestParameterAsInt(ctx.request(), "site_entry_id");
 
     UploadSiteImageRequest uploadSiteImageRequest =
         RestFunctions.getJsonBodyAsClass(ctx, UploadSiteImageRequest.class);
 
-    processor.uploadSiteImage(userData, siteId, uploadSiteImageRequest);
+    processor.uploadSiteImage(userData, siteEntryId, uploadSiteImageRequest);
 
     end(ctx.response(), 200);
   }

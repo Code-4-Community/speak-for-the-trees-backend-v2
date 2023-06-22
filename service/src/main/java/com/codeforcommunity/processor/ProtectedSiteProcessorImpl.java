@@ -31,6 +31,7 @@ import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
+import com.codeforcommunity.enums.ImageApprovalStatus;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.HandledException;
@@ -38,6 +39,7 @@ import com.codeforcommunity.exceptions.InvalidCSVException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+import com.codeforcommunity.requester.S3Requester;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
 import com.fasterxml.jackson.dataformat.csv.CsvSchema;
@@ -50,11 +52,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Record2;
 import org.jooq.Result;
 import org.jooq.Table;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
+import org.jooq.generated.tables.records.SiteImagesRecord;
 import org.jooq.generated.tables.records.SitesRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
 import org.jooq.generated.tables.records.UsersRecord;
@@ -589,21 +593,57 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   @Override
   public void uploadSiteImage(
-      JWTData userData, int siteId, UploadSiteImageRequest uploadSiteImageRequest) {
-    checkSiteExists(siteId);
+      JWTData userData, int siteEntryId, UploadSiteImageRequest uploadSiteImageRequest) {
+    checkEntryExists(siteEntryId);
+    int siteId = this.siteIdFromSiteEntryId(siteEntryId);
     checkAdminOrSiteAdopter(userData, siteId);
 
-    // TODO upload image to S3 and save URL to database
+    Record2<String, String> scientificName =
+        db.select(SITE_ENTRIES.GENUS, SITE_ENTRIES.SPECIES)
+            .from(SITE_ENTRIES)
+            .where(SITE_ENTRIES.ID.eq(siteEntryId)).fetchOne();
 
-    // SitesRecord site = db.selectFrom(SITES).where(SITES.ID.eq(siteId)).fetchOne();
+    // TODO come up with better unique image name
+    String imageName = scientificName.get(SITE_ENTRIES.GENUS) + "_" +
+        scientificName.get(SITE_ENTRIES.SPECIES) + "_" +
+        siteId + "_" + siteEntryId;
 
-    // site.store();
+    String imageUrl = S3Requester.uploadSiteImage(imageName, uploadSiteImageRequest.getImage());
+
+    SiteImagesRecord siteImagesRecord = db.newRecord(SITE_IMAGES);
+
+    siteImagesRecord.setSiteEntryId(siteEntryId);
+    siteImagesRecord.setUploaderId(userData.getUserId());
+    siteImagesRecord.setUploadedAt(new Timestamp(System.currentTimeMillis()));
+    siteImagesRecord.setImageUrl(imageUrl);
+
+    ImageApprovalStatus status = isAdmin(userData.getPrivilegeLevel())
+        ? ImageApprovalStatus.APPROVED
+        : ImageApprovalStatus.SUBMITTED;
+    siteImagesRecord.setApprovalStatus(status.getApprovalStatus());
+
+    siteImagesRecord.store();
+  }
+
+  private int siteIdFromSiteEntryId(int siteEntryId) {
+    return db.select(SITE_ENTRIES.SITE_ID)
+      .from(SITE_ENTRIES)
+      .where(SITE_ENTRIES.ID.eq(siteEntryId))
+      .fetchOne(SITE_ENTRIES.SITE_ID);
   }
 
   @Override
   public void deleteSiteImage(JWTData userData, int imageId) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkImageExists(imageId);
+
+    // TODO delete image from S3
+    String imageUrl = db.select(SITE_IMAGES.IMAGE_URL)
+        .from(SITE_IMAGES)
+        .where(SITE_IMAGES.ID.eq(imageId))
+        .fetchOne(SITE_IMAGES.IMAGE_URL, String.class);
+
+    S3Requester.deleteSiteImage(imageUrl);
 
     db.deleteFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageId)).execute();
   }

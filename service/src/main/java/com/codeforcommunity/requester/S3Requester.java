@@ -7,6 +7,7 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.CannedAccessControlList;
+import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
@@ -62,6 +63,8 @@ public class S3Requester {
   }
 
   private static Externs externs = new Externs();
+
+  private static final String SITE_IMAGES_S3_DIR = "site_images";
 
   /**
    * This should only be used for testing purposes when we mock the s3Client.
@@ -184,32 +187,47 @@ public class S3Requester {
   }
 
   /**
-   * Validate the given base64 encoding of an image and upload it to the LLB public S3 bucket for
-   * Events.
+   * Validate the given base64 encoding of an image and upload it to the SFTT public S3 bucket for
+   * Site Images.
    *
-   * @param eventTitle the title of the Event.
+   * @param imageName the desired name of the new file in S3 (without a file extension).
    * @param base64Encoding the encoded image to upload.
-   * @return null if the initial base64Encoding was null, or the image URL if the upload was
-   *     successful.
+   * @return image URL if the upload was successful.
    * @throws BadRequestImageException if the base64 decoding failed.
    * @throws S3FailedUploadException if the upload to S3 failed.
    */
-  public static String validateUploadImageToS3LucyEvents(String eventTitle, String base64Encoding)
+  public static String uploadSiteImage(String imageName, String base64Encoding)
       throws BadRequestImageException, S3FailedUploadException {
-    String fileName = getFileNameWithoutExtension(eventTitle, "_thumbnail");
-    return validateBase64ImageAndUploadToS3(fileName, externs.getDirPublic(), base64Encoding);
+    String fileName = getFileNameWithoutExtension(imageName, "");
+
+    return validateBase64ImageAndUploadToS3(fileName, SITE_IMAGES_S3_DIR, base64Encoding);
+  }
+
+  /**
+   * Delete the existing site image file with the given name from the user uploads S3 bucket.
+   *
+   * @param name the name of the image file in S3 to be deleted.
+   * @throws InvalidURLException if the file does not exist.
+   * @throws SdkClientException if the deletion from S3 failed.
+   */
+  public static void deleteSiteImage(String name) {
+    String imagePath = SITE_IMAGES_S3_DIR + "/" + name;
+
+    DeleteObjectRequest deleteRequest = new DeleteObjectRequest(externs.getBucketPublic(), imagePath);
+
+    externs.getS3Client().deleteObject(deleteRequest);
   }
 
   /**
    * Removes special characters, replaces spaces, and appends a suffix.
    *
-   * @param eventTitle the title of the event.
+   * @param baseTitle the title of the file.
    * @param suffix the suffix to be appended
    * @return the String for the image file name (without the file extension).
    */
-  public static String getFileNameWithoutExtension(String eventTitle, String suffix) {
+  public static String getFileNameWithoutExtension(String baseTitle, String suffix) {
     String title =
-        eventTitle.replaceAll(
+        baseTitle.replaceAll(
             "[!@#$%^&*()=+./\\\\|<>`~\\[\\]{}?]", ""); // Remove special characters
     return title.replace(" ", "_").toLowerCase() + suffix; // The desired name of the file in S3
   }

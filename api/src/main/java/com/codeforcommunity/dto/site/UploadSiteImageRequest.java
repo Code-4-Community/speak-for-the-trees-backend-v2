@@ -27,7 +27,7 @@ public class UploadSiteImageRequest extends ApiDto {
     String fieldName = fieldPrefix + "upload_image_request.";
     List<String> fields = new ArrayList<>();
 
-    if (image != null && urlInvalid(image)) {
+    if (image != null) {
       fields.add(fieldName + "image");
     }
 
