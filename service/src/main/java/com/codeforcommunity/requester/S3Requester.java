@@ -6,7 +6,6 @@ import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.DeleteObjectRequest;
 import com.amazonaws.services.s3.model.GetObjectRequest;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -168,7 +167,7 @@ public class S3Requester {
             externs.getBucketPublic(), directoryName + "/" + fullFileName, tempFile);
 
     // Set the image to be publicly available
-    awsRequest.setCannedAcl(CannedAccessControlList.PublicRead);
+    // awsRequest.setCannedAcl(CannedAccessControlList.PublicRead);
 
     // Set the image file metadata (to be of type image)
     ObjectMetadata awsObjectMetadata = new ObjectMetadata();
@@ -207,16 +206,17 @@ public class S3Requester {
   }
 
   /**
-   * Delete the existing site image file with the given name from the user uploads S3 bucket.
+   * Delete the existing site image with the given URL from the user uploads S3 bucket.
    *
-   * @param name the name of the image file in S3 to be deleted.
-   * @throws InvalidURLException if the file does not exist.
+   * @param imageUrl the URL of the image file in S3 to delete.
    * @throws SdkClientException if the deletion from S3 failed.
    */
-  public static void deleteSiteImage(String name) {
-    String imagePath = SITE_IMAGES_S3_DIR + "/" + name;
+  public static void deleteSiteImage(String imageUrl) {
+    // Get just the file path from the full URL
+    String imagePath = imageUrl.split(externs.getBucketPublicUrl() + '/')[1];
 
-    DeleteObjectRequest deleteRequest = new DeleteObjectRequest(externs.getBucketPublic(), imagePath);
+    DeleteObjectRequest deleteRequest =
+        new DeleteObjectRequest(externs.getBucketPublic(), imagePath);
 
     externs.getS3Client().deleteObject(deleteRequest);
   }
@@ -230,8 +230,7 @@ public class S3Requester {
    */
   public static String getFileNameWithoutExtension(String baseTitle, String suffix) {
     String title =
-        baseTitle.replaceAll(
-            "[!@#$%^&*()=+./\\\\|<>`~\\[\\]{}?]", ""); // Remove special characters
+        baseTitle.replaceAll("[!@#$%^&*()=+./\\\\|<>`~\\[\\]{}?]", ""); // Remove special characters
     return title.replace(" ", "_").toLowerCase() + suffix; // The desired name of the file in S3
   }
 

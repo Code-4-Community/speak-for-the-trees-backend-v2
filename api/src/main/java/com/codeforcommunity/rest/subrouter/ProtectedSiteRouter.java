@@ -299,7 +299,7 @@ public class ProtectedSiteRouter implements IRouter {
   }
 
   private void registerUploadSiteImage(Router router) {
-    Route uploadImage = router.post("/:site_entry_id/upload_image");
+    Route uploadImage = router.post("/site_image/:site_entry_id");
     uploadImage.handler(this::handleUploadSiteImage);
   }
 
@@ -316,7 +316,7 @@ public class ProtectedSiteRouter implements IRouter {
   }
 
   private void registerDeleteSiteImage(Router router) {
-    Route deleteImage = router.post("/delete_image/:image_id");
+    Route deleteImage = router.delete("/site_image/:image_id");
     deleteImage.handler(this::handleDeleteSiteImage);
   }
 

@@ -52,7 +52,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
-import org.jooq.Record2;
 import org.jooq.Result;
 import org.jooq.Table;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
@@ -597,28 +596,25 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     int siteId = this.siteIdFromSiteEntryId(siteEntryId);
     checkAdminOrSiteAdopter(userData, siteId);
 
-    Record2<String, String> scientificName =
-        db.select(SITE_ENTRIES.GENUS, SITE_ENTRIES.SPECIES)
-            .from(SITE_ENTRIES)
-            .where(SITE_ENTRIES.ID.eq(siteEntryId)).fetchOne();
+    Integer maxImageId =
+        db.select(max(SITE_IMAGES.ID)).from(SITE_IMAGES).fetchOne(0, Integer.class);
+    int newImageId = (maxImageId == null ? 0 : maxImageId) + 1;
 
-    // TODO come up with better unique image name
-    String imageName = scientificName.get(SITE_ENTRIES.GENUS) + "_" +
-        scientificName.get(SITE_ENTRIES.SPECIES) + "_" +
-        siteId + "_" + siteEntryId;
+    String imageUrl =
+        S3Requester.uploadSiteImage(String.valueOf(newImageId), uploadSiteImageRequest.getImage());
 
-    String imageUrl = S3Requester.uploadSiteImage(imageName, uploadSiteImageRequest.getImage());
+    ImageApprovalStatus status =
+        isAdmin(userData.getPrivilegeLevel())
+            ? ImageApprovalStatus.APPROVED
+            : ImageApprovalStatus.SUBMITTED;
 
     SiteImagesRecord siteImagesRecord = db.newRecord(SITE_IMAGES);
 
+    siteImagesRecord.setId(newImageId);
     siteImagesRecord.setSiteEntryId(siteEntryId);
     siteImagesRecord.setUploaderId(userData.getUserId());
     siteImagesRecord.setUploadedAt(new Timestamp(System.currentTimeMillis()));
     siteImagesRecord.setImageUrl(imageUrl);
-
-    ImageApprovalStatus status = isAdmin(userData.getPrivilegeLevel())
-        ? ImageApprovalStatus.APPROVED
-        : ImageApprovalStatus.SUBMITTED;
     siteImagesRecord.setApprovalStatus(status.getApprovalStatus());
 
     siteImagesRecord.store();
@@ -626,9 +622,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
   private int siteIdFromSiteEntryId(int siteEntryId) {
     return db.select(SITE_ENTRIES.SITE_ID)
-      .from(SITE_ENTRIES)
-      .where(SITE_ENTRIES.ID.eq(siteEntryId))
-      .fetchOne(SITE_ENTRIES.SITE_ID);
+        .from(SITE_ENTRIES)
+        .where(SITE_ENTRIES.ID.eq(siteEntryId))
+        .fetchOne(SITE_ENTRIES.SITE_ID);
   }
 
   @Override
@@ -636,11 +632,11 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkImageExists(imageId);
 
-    // TODO delete image from S3
-    String imageUrl = db.select(SITE_IMAGES.IMAGE_URL)
-        .from(SITE_IMAGES)
-        .where(SITE_IMAGES.ID.eq(imageId))
-        .fetchOne(SITE_IMAGES.IMAGE_URL, String.class);
+    String imageUrl =
+        db.select(SITE_IMAGES.IMAGE_URL)
+            .from(SITE_IMAGES)
+            .where(SITE_IMAGES.ID.eq(imageId))
+            .fetchOne(SITE_IMAGES.IMAGE_URL, String.class);
 
     S3Requester.deleteSiteImage(imageUrl);
 
