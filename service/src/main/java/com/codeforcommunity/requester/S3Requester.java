@@ -218,7 +218,12 @@ public class S3Requester {
     DeleteObjectRequest deleteRequest =
         new DeleteObjectRequest(externs.getBucketPublic(), imagePath);
 
-    externs.getS3Client().deleteObject(deleteRequest);
+    try {
+      externs.getS3Client().deleteObject(deleteRequest);
+    } catch (SdkClientException e) {
+      // The AWS S3 delete failed
+      throw new S3FailedUploadException(e.getMessage());
+    }
   }
 
   /**
