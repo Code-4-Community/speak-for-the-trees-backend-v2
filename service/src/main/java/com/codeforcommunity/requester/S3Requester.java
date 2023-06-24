@@ -16,10 +16,9 @@ import com.codeforcommunity.aws.EncodedImage;
 import com.codeforcommunity.dto.emailer.LoadTemplateResponse;
 import com.codeforcommunity.exceptions.BadRequestHTMLException;
 import com.codeforcommunity.exceptions.BadRequestImageException;
-import com.codeforcommunity.exceptions.S3FailedUploadException;
 import com.codeforcommunity.exceptions.InvalidURLException;
+import com.codeforcommunity.exceptions.S3FailedUploadException;
 import com.codeforcommunity.propertiesLoader.PropertiesLoader;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -35,10 +34,14 @@ public class S3Requester {
   // Contains information about S3 that is not part of this class's implementation
   public static class Externs {
     private static final AmazonS3 s3Client =
-        AmazonS3ClientBuilder.standard().withRegion(Regions.US_EAST_2).withCredentials(
-                new AWSStaticCredentialsProvider(new BasicAWSCredentials(PropertiesLoader
-                        .loadProperty("aws_access_key"), PropertiesLoader.
-                        loadProperty("aws_secret_key")))).build();
+        AmazonS3ClientBuilder.standard()
+            .withRegion(Regions.US_EAST_2)
+            .withCredentials(
+                new AWSStaticCredentialsProvider(
+                    new BasicAWSCredentials(
+                        PropertiesLoader.loadProperty("aws_access_key"),
+                        PropertiesLoader.loadProperty("aws_secret_key"))))
+            .build();
 
     private static final String BUCKET_PUBLIC_URL =
         PropertiesLoader.loadProperty("aws_s3_bucket_url");
@@ -233,8 +236,8 @@ public class S3Requester {
   }
 
   /**
-   * Validate the given string encoding of HTML and upload it to the user upload S3 bucket.
-   * HTML will be overwritten in S3 if another file of the same name is uploaded.
+   * Validate the given string encoding of HTML and upload it to the user upload S3 bucket. HTML
+   * will be overwritten in S3 if another file of the same name is uploaded.
    *
    * @param name the desired name of the new file in S3 (without a file extension).
    * @param directoryName the desired directory of the file in S3 (without leading or trailing '/').
@@ -333,7 +336,7 @@ public class S3Requester {
       while ((c = HTMLFile.getObjectContent().read()) != -1) {
         content.append((char) c);
       }
-    } catch(IOException e) {
+    } catch (IOException e) {
       throw new BadRequestHTMLException("HTML file could not be decoded to string");
     }
 

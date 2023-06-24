@@ -306,8 +306,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
           db.deleteFrom(ADOPTED_SITES).where(ADOPTED_SITES.SITE_ID.eq(siteId)).execute();
 
           this.resetTreeName(siteId);
-        }
-    );
+        });
   }
 
   @Override
