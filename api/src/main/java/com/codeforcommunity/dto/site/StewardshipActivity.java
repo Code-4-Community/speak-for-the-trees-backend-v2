@@ -14,7 +14,6 @@ public class StewardshipActivity {
   private final Boolean mulched;
   private final Boolean cleaned;
   private final Boolean weeded;
-
   private final Boolean installedWateringBag;
 
   public StewardshipActivity(
