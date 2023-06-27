@@ -166,9 +166,6 @@ public class S3Requester {
         new PutObjectRequest(
             externs.getBucketPublic(), directoryName + "/" + fullFileName, tempFile);
 
-    // Set the image to be publicly available
-    // awsRequest.setCannedAcl(CannedAccessControlList.PublicRead);
-
     // Set the image file metadata (to be of type image)
     ObjectMetadata awsObjectMetadata = new ObjectMetadata();
     awsObjectMetadata.setContentType(encodedImage.getFileType() + encodedImage.getFileExtension());
