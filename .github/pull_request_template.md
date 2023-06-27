@@ -1,7 +1,5 @@
 ## Why
 
-[GH Projects Ticket](https://github.com/Code-4-Community/speak-for-the-trees-backend-v2/issues/xxx)<Replace xxx with your ticket number>
-
 Resolves #<ticket number here>
 
 <!-- What benefit does this bring to the end user? Or, what benefit does this bring to developers working in the codebase? -->
