@@ -653,14 +653,13 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
               max(STEWARDSHIP.PERFORMED_ON).le(filterSitesRequest.getLastActivityEnd()));
 
     Result<
-            org.jooq.Record12<
+              org.jooq.Record11<
                 Integer,
                 String,
                 Integer,
                 Integer,
                 Date,
                 Date,
-                Timestamp,
                 String,
                 String,
                 String,
@@ -674,7 +673,6 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
                     ADOPTED_SITES.USER_ID,
                     ADOPTED_SITES.DATE_ADOPTED,
                     max(STEWARDSHIP.PERFORMED_ON).as(STEWARDSHIP.PERFORMED_ON),
-                    max(SITE_ENTRIES.CREATED_AT).as(SITE_ENTRIES.CREATED_AT),
                     SITE_ENTRIES.COMMON_NAME,
                     USERS.FIRST_NAME,
                     USERS.LAST_NAME,
