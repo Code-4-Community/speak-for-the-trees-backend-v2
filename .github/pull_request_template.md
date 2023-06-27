@@ -1,11 +1,8 @@
-## Checklist
-
-- [ ] 1. Change ClickUp ticket status to "In Review"
-- [ ] 2. After making the PR, add PR link to ClickUp ticket
-
 ## Why
 
-[ClickUp Ticket](https://app.clickup.com/t/xxxxxxx)
+[GH Projects Ticket](https://github.com/Code-4-Community/speak-for-the-trees-backend-v2/issues/xxx)<Replace xxx with your ticket number>
+
+Resolves #<ticket number here>
 
 <!-- What benefit does this bring to the end user? Or, what benefit does this bring to developers working in the codebase? -->
 
