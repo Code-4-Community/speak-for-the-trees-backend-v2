@@ -36,6 +36,7 @@ import com.codeforcommunity.exceptions.AuthException;
 import com.codeforcommunity.exceptions.HandledException;
 import com.codeforcommunity.exceptions.InvalidCSVException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
+import com.codeforcommunity.exceptions.NoTreePresentException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
 import com.fasterxml.jackson.databind.MappingIterator;
@@ -237,6 +238,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     checkSiteExists(siteId);
     if (isAlreadyAdopted(siteId)) {
       throw new WrongAdoptionStatusException(true);
+    }
+    // prevent users from adopting a site with no tree
+    if (!latestSiteEntry(siteId).getTreePresent()) {
+      throw new NoTreePresentException(siteId);
     }
 
     AdoptedSitesRecord record = db.newRecord(ADOPTED_SITES);
