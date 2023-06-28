@@ -2,8 +2,7 @@ package com.codeforcommunity.enums;
 
 public enum ImageApprovalStatus {
   SUBMITTED("SUBMITTED"),
-  APPROVED("APPROVED"),
-  REJECTED("REJECTED");
+  APPROVED("APPROVED");
 
   private final String approvalStatus;
 

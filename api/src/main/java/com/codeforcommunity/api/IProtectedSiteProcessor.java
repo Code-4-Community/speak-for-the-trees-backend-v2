@@ -79,7 +79,7 @@ public interface IProtectedSiteProcessor {
   /**
    * Used to upload a new image for a site entry with the given ID. The image must be given in the
    * format of data:image/{extension};base64,{imageData}. For each image, a new row in the
-   * `SITE_ENTRIES` table will be created. Only users who are Admins, or Super Admins can perform
+   * `SITE_IMAGES` table will be created. Only users who are Admins, or Super Admins can perform
    * this action.
    */
   void uploadSiteImage(

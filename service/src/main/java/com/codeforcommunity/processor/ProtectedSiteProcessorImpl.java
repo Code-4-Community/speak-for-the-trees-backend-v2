@@ -34,11 +34,13 @@ import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.enums.ImageApprovalStatus;
 import com.codeforcommunity.enums.PrivilegeLevel;
 import com.codeforcommunity.exceptions.AuthException;
+import com.codeforcommunity.exceptions.ForbiddenException;
 import com.codeforcommunity.exceptions.HandledException;
 import com.codeforcommunity.exceptions.InvalidCSVException;
 import com.codeforcommunity.exceptions.LinkedResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
+import com.codeforcommunity.logger.SLogger;
 import com.codeforcommunity.requester.S3Requester;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -66,6 +68,11 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     implements IProtectedSiteProcessor {
 
   private final DSLContext db;
+
+  private final SLogger logger = new SLogger(ProtectedSiteProcessorImpl.class);
+
+  private static final int MAX_SUBMITTED_SITE_IMAGES = 20;
+  private static final int UPLOAD_SITE_IMAGE_SLACK_FREQ = 2;
 
   public ProtectedSiteProcessorImpl(DSLContext db) {
     this.db = db;
@@ -165,6 +172,56 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     if (!(isAdmin(userData.getPrivilegeLevel())
         || isAlreadyAdoptedByUser(userData.getUserId(), siteId))) {
       throw new AuthException("User needs to be an admin or the site's adopter.");
+    }
+  }
+
+  /**
+   * Check if the user is an admin or the uploader of the tree image with the given imageId
+   *
+   * @param userData the user's data
+   * @param imageId the ID of the site image to check
+   * @throws AuthException if the user is not an admin or the image's uploader
+   */
+  private void checkAdminOrImageUploader(JWTData userData, int imageId) throws AuthException {
+    if (isAdmin(userData.getPrivilegeLevel())) {
+      return;
+    }
+
+    int uploaderId =
+        db.select(SITE_IMAGES.UPLOADER_ID)
+            .from(SITE_IMAGES)
+            .where(SITE_IMAGES.ID.eq(imageId))
+            .fetchOne(0, int.class);
+    if (uploaderId != userData.getUserId()) {
+      throw new AuthException("User needs to be an admin or the image's uploader.");
+    }
+  }
+
+  /**
+   * Check if the user is able to upload a tree image. A user can upload if they are an admin or
+   * have less than `MAX_SUBMITTED_SITE_IMAGES` uploaded images that are waiting for admin approval
+   *
+   * @param userData the user's data
+   * @throws AuthException if the user has uploaded
+   */
+  private void checkCanUploadImage(JWTData userData) throws AuthException {
+    if (isAdmin(userData.getPrivilegeLevel())) {
+      return;
+    }
+
+    int numSubmittedImages =
+        db.selectCount()
+            .from(SITE_IMAGES)
+            .where(SITE_IMAGES.UPLOADER_ID.eq(userData.getUserId()))
+            .and(SITE_IMAGES.APPROVAL_STATUS.eq(String.valueOf(ImageApprovalStatus.SUBMITTED)))
+            .fetchOne(0, int.class);
+
+    if (numSubmittedImages > MAX_SUBMITTED_SITE_IMAGES) {
+      throw new ForbiddenException(
+          String.format(
+              "Users can only upload %d images waiting for administrator approval at a time. Please"
+                  + " try again when currently uploaded images have been approved by an admin!",
+              MAX_SUBMITTED_SITE_IMAGES));
     }
   }
 
@@ -593,12 +650,15 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void uploadSiteImage(
       JWTData userData, int siteEntryId, UploadSiteImageRequest uploadSiteImageRequest) {
     checkEntryExists(siteEntryId);
-    int siteId = this.siteIdFromSiteEntryId(siteEntryId);
-    checkAdminOrSiteAdopter(userData, siteId);
+    checkCanUploadImage(userData);
 
     Integer maxImageId =
         db.select(max(SITE_IMAGES.ID)).from(SITE_IMAGES).fetchOne(0, Integer.class);
     int newImageId = (maxImageId == null ? 0 : maxImageId) + 1;
+
+    if (newImageId % UPLOAD_SITE_IMAGE_SLACK_FREQ == 0) {
+      logger.info("INFO: " + newImageId + "th site image uploaded", true);
+    }
 
     String imageUrl =
         S3Requester.uploadSiteImage(String.valueOf(newImageId), uploadSiteImageRequest.getImage());
@@ -620,16 +680,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     siteImagesRecord.store();
   }
 
-  private int siteIdFromSiteEntryId(int siteEntryId) {
-    return db.select(SITE_ENTRIES.SITE_ID)
-        .from(SITE_ENTRIES)
-        .where(SITE_ENTRIES.ID.eq(siteEntryId))
-        .fetchOne(SITE_ENTRIES.SITE_ID);
-  }
-
   @Override
   public void deleteSiteImage(JWTData userData, int imageId) {
-    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    checkAdminOrImageUploader(userData, imageId);
     checkImageExists(imageId);
 
     String imageUrl =
@@ -699,7 +752,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
               max(STEWARDSHIP.PERFORMED_ON).le(filterSitesRequest.getLastActivityEnd()));
 
     Result<
-              org.jooq.Record11<
+            org.jooq.Record11<
                 Integer,
                 String,
                 Integer,
