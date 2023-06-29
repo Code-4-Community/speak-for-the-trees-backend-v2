@@ -216,7 +216,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
             .and(SITE_IMAGES.APPROVAL_STATUS.eq(String.valueOf(ImageApprovalStatus.SUBMITTED)))
             .fetchOne(0, int.class);
 
-    if (numSubmittedImages > MAX_SUBMITTED_SITE_IMAGES) {
+    if (numSubmittedImages >= MAX_SUBMITTED_SITE_IMAGES) {
       throw new ForbiddenException(
           String.format(
               "Users can only upload %d images waiting for administrator approval at a time. Please"
@@ -676,6 +676,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     siteImagesRecord.setUploadedAt(new Timestamp(System.currentTimeMillis()));
     siteImagesRecord.setImageUrl(imageUrl);
     siteImagesRecord.setApprovalStatus(status.getApprovalStatus());
+    siteImagesRecord.setAnonymous(uploadSiteImageRequest.getAnonymous());
 
     siteImagesRecord.store();
   }
