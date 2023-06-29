@@ -450,6 +450,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   }
 
   public void updateSite(JWTData userData, int siteId, UpdateSiteRequest updateSiteRequest) {
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkSiteExists(siteId);
 
     SiteEntriesRecord record = db.newRecord(SITE_ENTRIES);
@@ -461,7 +462,12 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     record.setSiteId(siteId);
     populateSiteEntry(record, updateSiteRequest);
 
-    record.store();
+    db.transaction(configuration -> {
+      record.store();
+      if (!updateSiteRequest.isTreePresent() && isAlreadyAdopted(siteId)) {
+        forceUnadoptSite(userData, siteId);
+      }
+    });
   }
 
   @Override
@@ -764,6 +770,13 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     siteEntriesRecord.setUserId(userData.getUserId());
     populateSiteEntry(siteEntriesRecord, editSiteEntryRequest);
 
-    siteEntriesRecord.store();
+    int siteId = siteEntriesRecord.getSiteId();
+
+    db.transaction(configuration -> {
+      siteEntriesRecord.store();
+      if (!editSiteEntryRequest.isTreePresent() && isAlreadyAdopted(siteId)) {
+        forceUnadoptSite(userData, siteId);
+      }
+    });
   }
 }
