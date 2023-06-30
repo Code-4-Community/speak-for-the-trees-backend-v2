@@ -774,7 +774,10 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 
     db.transaction(configuration -> {
       siteEntriesRecord.store();
-      if (!editSiteEntryRequest.isTreePresent() && isAlreadyAdopted(siteId)) {
+      // force unadopt only if we change the latest site entry of an adopted site to have no tree
+      if (!editSiteEntryRequest.isTreePresent()
+          && isAlreadyAdopted(siteId)
+          && entryId == latestSiteEntry(siteId).getId()) {
         forceUnadoptSite(userData, siteId);
       }
     });
