@@ -80,7 +80,8 @@ public class TreeSpeciesImport extends ApiDto {
     if (speciesCode == null || isEmpty(speciesCode)) {
       fields.add(fieldName + "speciesCode");
     }
-    if (defaultImage == null || isEmpty(defaultImage)) {
+    // default image can be null, but not empty
+    if (defaultImage != null && defaultImage.isEmpty()) {
       fields.add(fieldName + "defaultImage");
     }
 
