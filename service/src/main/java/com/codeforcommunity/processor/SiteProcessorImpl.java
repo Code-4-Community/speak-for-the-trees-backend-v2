@@ -203,7 +203,9 @@ public class SiteProcessorImpl implements ISiteProcessor {
       }).collect(Collectors.toList());
     }
 
-    // if no approved images exist for the entry, check if its tree has a default image
+    // if no approved images exist for the entry, check if its tree has a default image.
+    // to counter any minor differences in tree name (e.g. Honey locust vs Honeylocust), 
+    // normalize the tree's common name by setting the name to all lowercase and removing empty spaces
     String defaultUrl = db.select(TREE_SPECIES.DEFAULT_IMAGE).from(TREE_SPECIES)
         .where(lower(replace(TREE_SPECIES.COMMON_NAME, " ", ""))
             .eq(commonName.toLowerCase().replace(" ", "")))
