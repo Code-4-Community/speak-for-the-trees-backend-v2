@@ -23,6 +23,8 @@ import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.logger.SLogger;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.jooq.DSLContext;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
@@ -180,39 +182,41 @@ public class SiteProcessorImpl implements ISiteProcessor {
   }
 
   private List<SiteEntryImage> getSiteEntryImages(int entryId, String commonName) {
-    List<SiteEntryImage> images = new ArrayList<>();
-    // first retrieve the default image, if the entry's tree has one.
-    // fetch by tree's common name, normalized to increase matches
-    // normalize by converting common names to all lowercase and removing spaces
-    String defaultUrl = db.select(TREE_SPECIES.DEFAULT_IMAGE).from(TREE_SPECIES)
-        .where(lower(replace(TREE_SPECIES.COMMON_NAME, " ", ""))
-            .eq(commonName.toLowerCase().replace(" ", "")))
-        .fetchOne(0, String.class);
-
-    if (defaultUrl != null) {
-      images.add(new SiteEntryImage(defaultUrl));
-    }
-
     List<SiteImagesRecord> imageRecords = db.selectFrom(SITE_IMAGES)
         .where(SITE_IMAGES.SITE_ENTRY_ID.eq(entryId))
         .and(SITE_IMAGES.APPROVAL_STATUS.eq(ImageApprovalStatus.APPROVED.getApprovalStatus()))
         .orderBy(SITE_IMAGES.UPLOADED_AT.desc())
         .fetch();
 
-    imageRecords.stream().map(record -> {
-      String username;
-      if (record.getAnonymous()) {
-        username = "Anonymous";
-      } else {
-        username = db.selectFrom(USERS)
-            .where(USERS.ID.eq(record.getUploaderId()))
-            .fetchOne().getUsername();
-      }
+    if (!imageRecords.isEmpty()) {
+      return imageRecords.stream().map(record -> {
+        String username;
+        if (record.getAnonymous()) {
+          username = "Anonymous";
+        } else {
+          username = db.selectFrom(USERS)
+              .where(USERS.ID.eq(record.getUploaderId()))
+              .fetchOne().getUsername();
+        }
 
-      return new SiteEntryImage(record.getId(), username, record.getUploadedAt(), record.getImageUrl());
-    }).forEach(image -> images.add(image));
+        return new SiteEntryImage(record.getId(), username, record.getUploadedAt(), record.getImageUrl());
+      }).collect(Collectors.toList());
+    }
 
-    return images;
+    // if no approved images exist for the entry, check if its tree has a default image
+    String defaultUrl = db.select(TREE_SPECIES.DEFAULT_IMAGE).from(TREE_SPECIES)
+        .where(lower(replace(TREE_SPECIES.COMMON_NAME, " ", ""))
+            .eq(commonName.toLowerCase().replace(" ", "")))
+        .fetchOne(0, String.class);
+
+    if (defaultUrl != null) {
+      List<SiteEntryImage> images = new ArrayList<SiteEntryImage>();
+      images.add(new SiteEntryImage(defaultUrl));
+      return images;
+    }
+
+    // if no default image either, return empty list
+    return new ArrayList<>();
   }
 
   @Override
