@@ -49,4 +49,10 @@ public class ProtectedEmailerProcessorImpl extends AbstractProcessor
 
     return loadTemplateResponse;
   }
+
+  @Override
+  public void deleteTemplate(JWTData userData, String templateName) {
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    S3Requester.deleteHTML(templateName, TEMPLATE_DIR);
+  }
 }

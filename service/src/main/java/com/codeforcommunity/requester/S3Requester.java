@@ -304,7 +304,7 @@ public class S3Requester {
 
     return String.format("%s/%s/%s", externs.getBucketPublicUrl(), directoryName, name);
   }
-
+  
   // helper to check whether the given path exists
   public static boolean pathExists(String path) {
     return externs.getS3Client().doesObjectExist(externs.getBucketPublic(), path);
@@ -327,7 +327,7 @@ public class S3Requester {
       throw new InvalidURLException();
     }
 
-    // Create the request to delete the HTML
+    // Create the request to get the HTML
     GetObjectRequest awsRequest = new GetObjectRequest(externs.getBucketPublic(), htmlPath);
 
     S3Object HTMLFile = externs.getS3Client().getObject(awsRequest);
@@ -346,5 +346,26 @@ public class S3Requester {
     String htmlAuthor = HTMLFile.getObjectMetadata().getUserMetaDataOf("userID");
 
     return new LoadTemplateResponse(HTMLContent, HTMLFile.getKey(), htmlAuthor);
+  }
+
+  /**
+   * Delete the existing HTML file with the given name from the user uploads S3 bucket.
+   *
+   * @param name the name of the HTML file in S3 to be deleted.
+   * @param directoryName the directory of the file in S3 (without leading or trailing '/').
+   * @throws InvalidURLException if the file does not exist.
+   * @throws SdkClientException if the deletion from S3 failed.
+   */
+  public static void deleteHTML(String name, String directoryName) {
+    String htmlPath = directoryName + "/" + name + "_template.html";
+
+    if (!pathExists(htmlPath)) {
+      throw new InvalidURLException();
+    }
+
+    // Create the request to delete the HTML
+    DeleteObjectRequest awsRequest = new DeleteObjectRequest(externs.getBucketPublic(), htmlPath);
+
+    externs.getS3Client().deleteObject(awsRequest);
   }
 }
