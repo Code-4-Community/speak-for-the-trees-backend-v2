@@ -417,7 +417,6 @@ public class ProtectedSiteRouter implements IRouter {
     end(ctx.response(), 200);
   }
 
-
   private void registerGetUnapprovedImages(Router router) {
     Route unapprovedSiteImages = router.get("/unapproved_images");
     unapprovedSiteImages.handler(this::handleGetUnapprovedImages);
@@ -428,5 +427,4 @@ public class ProtectedSiteRouter implements IRouter {
     processor.getUnapprovedImages(userData);
     end(ctx.response(), 200);
   }
-
 }
