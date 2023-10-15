@@ -18,6 +18,7 @@ import com.codeforcommunity.dto.team.TeamMembersResponse;
 import com.codeforcommunity.dto.team.TransferOwnershipRequest;
 import com.codeforcommunity.dto.team.UsersResponse;
 import com.codeforcommunity.enums.TeamRole;
+import com.codeforcommunity.exceptions.ExistingTeamNameException;
 import com.codeforcommunity.exceptions.LeaderCannotLeaveTeamException;
 import com.codeforcommunity.exceptions.MemberApplicationException;
 import com.codeforcommunity.exceptions.MemberStatusException;
@@ -101,14 +102,19 @@ public class TeamsProcessorImpl implements ITeamsProcessor {
 
   @Override
   public void createTeam(JWTData userData, CreateTeamRequest request) {
+    TeamsRecord existingTeam = db.selectFrom(TEAMS).where(TEAMS.TEAM_NAME.eq(request.getName()));
+    if (existingTeam != null) {
+      throw new ExistingTeamNameException(request.getName());
+    }
+
     TeamsRecord team = db.newRecord(TEAMS);
     team.setBio(request.getBio());
     team.setTeamName(request.getName());
-    team.store();
     UsersTeamsRecord usersTeam = db.newRecord(USERS_TEAMS);
     usersTeam.setTeamId(team.getId());
     usersTeam.setTeamRole(TeamRole.LEADER);
     usersTeam.setUserId(userData.getUserId());
+    team.store();
     usersTeam.store();
   }
 

@@ -276,6 +276,11 @@ public class FailureHandler {
     end(ctx, message, 500);
   }
 
+  public void handleExistingTeamNameException(RoutingContext ctx, String teamName) {
+    String message = String.format("There already exists a team with name %d", teamName);
+    end(ctx, message, 400);
+  }
+
   private void end(RoutingContext ctx, String message, int statusCode) {
     ctx.response().setStatusCode(statusCode).end(message);
   }
