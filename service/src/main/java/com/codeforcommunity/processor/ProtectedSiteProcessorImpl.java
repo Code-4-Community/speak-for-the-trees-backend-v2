@@ -880,15 +880,20 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
 <<<<<<< HEAD
   public List<SiteEntryImage> getUnapprovedImages(JWTData userData) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
-    List<SiteImagesRecord> imageRecords = db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.APPROVAL_STATUS.eq(ImageApprovalStatus.SUBMITTED));
-    List<SiteEntryImage> unapprovedImages = imageRecords.stream().map(
-            imageRecord ->
+    List<SiteImagesRecord> imageRecords =
+        db.selectFrom(SITE_IMAGES)
+            .where(SITE_IMAGES.APPROVAL_STATUS.eq(ImageApprovalStatus.SUBMITTED));
+    List<SiteEntryImage> unapprovedImages =
+        imageRecords.stream()
+            .map(
+                imageRecord ->
                     new SiteEntryImage(
-                            imageRecord.getImageId(),
-                            imageRecord.getUploaderUsername(),
-                            imageRecord.getUploadedAt(),
-                            imageRecord.getImageURL(),
-                            imageRecord.getApprovalStatus())).collect(Collectors.toList());
+                        imageRecord.getImageId(),
+                        imageRecord.getUploaderUsername(),
+                        imageRecord.getUploadedAt(),
+                        imageRecord.getImageURL(),
+                        imageRecord.getApprovalStatus()))
+            .collect(Collectors.toList());
     return unapprovedImages;
   }
 
@@ -896,7 +901,8 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   public void approveSiteImage(JWTData userData, int imageID) {
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
     checkImageExists(imageID);
-    SiteImagesRecord imageRecord = db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageID)).fetchOne();
+    SiteImagesRecord imageRecord =
+        db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageID)).fetchOne();
     imageRecord.setApprovalStatus("Approved");
 =======
   public void approveSiteImage(JWTData userData, int imageID) {
