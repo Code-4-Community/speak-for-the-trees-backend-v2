@@ -212,10 +212,14 @@ public class S3Requester {
    */
   public static void deleteSiteImage(String imageUrl) {
     // Get just the file path from the full URL
-    String imagePath = imageUrl.split(externs.getBucketPublicUrl() + '/')[1];
+    String[] paths =  imageUrl.split(externs.getBucketPublicUrl() + '/');
+    String[] imagePath = paths[1].split("/");
+    String directoryName = imagePath[0];
+    String filename = imagePath[1];
+    String objectName = String.join("/", directoryName, externs.getDirPublic(), filename);
 
     DeleteObjectRequest deleteRequest =
-        new DeleteObjectRequest(externs.getBucketPublic(), imagePath);
+        new DeleteObjectRequest(externs.getBucketPublic(), objectName);
 
     try {
       externs.getS3Client().deleteObject(deleteRequest);
