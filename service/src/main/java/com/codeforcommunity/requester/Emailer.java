@@ -23,9 +23,13 @@ public class Emailer {
       PropertiesLoader.loadProperty("email_subject_account_deleted");
   private final String subjectEmailNeighborhoods =
       PropertiesLoader.loadProperty("email_subject_neighborhood_notification");
+  private final String subjectSiteReport =
+      PropertiesLoader.loadProperty("email_subject_site_report");
+  private final String reportEmailDestination =
+      PropertiesLoader.loadProperty("email_report_destination");
+  private final String senderName = PropertiesLoader.loadProperty("email_sender_name");
 
   public Emailer() {
-    String senderName = PropertiesLoader.loadProperty("email_sender_name");
     String sendEmail = PropertiesLoader.loadProperty("email_send_email");
     String sendPassword = PropertiesLoader.loadProperty("email_send_password");
     String emailHost = PropertiesLoader.loadProperty("email_host");
@@ -40,7 +44,7 @@ public class Emailer {
     this.frontendUrl = PropertiesLoader.loadProperty("frontend_base_url");
     this.passwordResetTemplate =
         this.frontendUrl + PropertiesLoader.loadProperty("frontend_password_reset_route");
-  } 
+  }
 
   public void sendWelcomeEmail(String sendToEmail, String sendToName) {
     String filePath = "/emails/WelcomeEmail.html";
@@ -119,6 +123,28 @@ public class Emailer {
             emailOperations.sendEmailToOneRecipient(
                 sendToName, sendToEmail, subjectAccountDeleted, s));
     // TODO implement this
+  }
+
+  public void sendIssueReportEmail(
+      String userFullName,
+      String userEmail,
+      int siteId,
+      String reportReason,
+      String reportDescription) {
+    String filePath = "/emails/SiteIssueReport.html";
+
+    Map<String, String> templateValues = new HashMap<>();
+    templateValues.put("name", userFullName);
+    templateValues.put("email", userEmail);
+    templateValues.put("siteId", String.valueOf(siteId));
+    templateValues.put("reportReason", reportReason);
+    templateValues.put("reportDescription", reportDescription);
+
+    Optional<String> emailBody = emailOperations.getTemplateString(filePath, templateValues);
+    emailBody.ifPresent(
+        s ->
+            emailOperations.sendEmailToOneRecipient(
+                senderName, reportEmailDestination, subjectSiteReport, s));
   }
 
   public void sendArbitraryEmail(HashSet<String> sendToEmails, String subject, String body) {
