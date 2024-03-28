@@ -9,6 +9,7 @@ import static org.jooq.generated.Tables.SITE_ENTRIES;
 import static org.jooq.generated.Tables.SITE_IMAGES;
 import static org.jooq.generated.Tables.STEWARDSHIP;
 import static org.jooq.generated.Tables.USERS;
+import static org.jooq.generated.Tables.USER_SITE_REPORTS;
 import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.max;
@@ -31,6 +32,7 @@ import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
+import com.codeforcommunity.dto.site.ReportSiteRequest;
 import com.codeforcommunity.dto.site.SiteEntryImage;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
@@ -45,6 +47,7 @@ import com.codeforcommunity.exceptions.NoTreePresentException;
 import com.codeforcommunity.exceptions.ResourceDoesNotExistException;
 import com.codeforcommunity.exceptions.WrongAdoptionStatusException;
 import com.codeforcommunity.logger.SLogger;
+import com.codeforcommunity.requester.Emailer;
 import com.codeforcommunity.requester.S3Requester;
 import com.fasterxml.jackson.databind.MappingIterator;
 import com.fasterxml.jackson.dataformat.csv.CsvMapper;
@@ -53,11 +56,13 @@ import java.io.IOException;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Record3;
 import org.jooq.Record11;
 import org.jooq.Result;
 import org.jooq.Table;
@@ -67,20 +72,24 @@ import org.jooq.generated.tables.records.SiteEntriesRecord;
 import org.jooq.generated.tables.records.SiteImagesRecord;
 import org.jooq.generated.tables.records.SitesRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
+import org.jooq.generated.tables.records.UserSiteReportsRecord;
 import org.jooq.generated.tables.records.UsersRecord;
 
 public class ProtectedSiteProcessorImpl extends AbstractProcessor
     implements IProtectedSiteProcessor {
 
   private final DSLContext db;
+  private final Emailer emailer;
 
   private final SLogger logger = new SLogger(ProtectedSiteProcessorImpl.class);
 
   private static final int MAX_SUBMITTED_SITE_IMAGES = 20;
   private static final int UPLOAD_SITE_IMAGE_SLACK_FREQ = 2;
+  private static final int MAX_DAILY_SITE_REPORTS = 15;
 
-  public ProtectedSiteProcessorImpl(DSLContext db) {
+  public ProtectedSiteProcessorImpl(DSLContext db, Emailer emailer) {
     this.db = db;
+    this.emailer = emailer;
   }
 
   /**
@@ -227,6 +236,22 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
               "Users can only upload %d images waiting for administrator approval at a time. Please"
                   + " try again when currently uploaded images have been approved by an admin!",
               MAX_SUBMITTED_SITE_IMAGES));
+    }
+  }
+
+  private void checkCanReportSite(JWTData userData) throws ForbiddenException {
+    if (isAdmin(userData.getPrivilegeLevel())) {
+      return;
+    }
+
+    int reportsToday = db.selectCount()
+        .from(USER_SITE_REPORTS)
+        .where(USER_SITE_REPORTS.USER_ID.eq(userData.getUserId()))
+        .and(USER_SITE_REPORTS.CREATED_AT.greaterOrEqual(Timestamp.valueOf(LocalDateTime.now().minusDays(1))))
+        .fetchOne(0, int.class);
+
+    if (reportsToday >= MAX_DAILY_SITE_REPORTS) {
+      throw new ForbiddenException("Users can only make " + MAX_DAILY_SITE_REPORTS + " reports a day!");
     }
   }
 
@@ -997,5 +1022,30 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
         db.selectFrom(SITE_IMAGES).where(SITE_IMAGES.ID.eq(imageID)).fetchOne();
     imageRecord.setApprovalStatus(ImageApprovalStatus.APPROVED.getApprovalStatus());
     imageRecord.store();
+  }
+
+  @Override
+  public void reportSiteForIssues(
+      JWTData userData, int siteId, ReportSiteRequest reportSiteRequest) {
+    checkSiteExists(siteId);
+    checkCanReportSite(userData);
+
+    Record3<String, String, String> userFields =
+        db.select(USERS.FIRST_NAME, USERS.LAST_NAME, USERS.EMAIL)
+            .from(USERS)
+            .where(USERS.ID.eq(userData.getUserId()))
+            .fetchOne();
+
+    emailer.sendIssueReportEmail(
+        userFields.get(USERS.FIRST_NAME) + " " + userFields.get(USERS.LAST_NAME),
+        userFields.get(USERS.EMAIL),
+        siteId,
+        reportSiteRequest.getReason(),
+        reportSiteRequest.getDescription());
+
+    UserSiteReportsRecord record = db.newRecord(USER_SITE_REPORTS);
+    record.setUserId(userData.getUserId());
+    record.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
+    record.store();
   }
 }
