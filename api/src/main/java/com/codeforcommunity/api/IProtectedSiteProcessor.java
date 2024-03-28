@@ -136,5 +136,6 @@ public interface IProtectedSiteProcessor {
   /** Allows Admin users to approve uploaded site images of the given ID */
   void approveSiteImage(JWTData userData, int imageID);
 
+  /** Reports the site for an issue by sending an email to SFTT */
   void reportSiteForIssues(JWTData userData, int siteId, ReportSiteRequest reportSiteRequest);
 }

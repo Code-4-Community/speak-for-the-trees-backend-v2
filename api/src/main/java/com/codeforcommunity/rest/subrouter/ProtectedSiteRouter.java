@@ -487,10 +487,6 @@ public class ProtectedSiteRouter implements IRouter {
         JsonObject.mapFrom(Collections.singletonMap("images", images)).toString());
   }
 
-  private List<Integer> parseOptionalQueryParamList(String list) {
-    return Arrays.stream(list.split(",")).map(Integer::parseInt).collect(Collectors.toList());
-  }
-
   private void registerReportSiteIssue(Router router) {
     Route reportSiteIssues = router.post("/:site_id/report");
     reportSiteIssues.handler(this::handleReportSiteIssue);
@@ -506,5 +502,9 @@ public class ProtectedSiteRouter implements IRouter {
     processor.reportSiteForIssues(userData, siteId, reportSiteRequest);
 
     end(ctx.response(), 200);
+  }
+
+  private List<Integer> parseOptionalQueryParamList(String list) {
+    return Arrays.stream(list.split(",")).map(Integer::parseInt).collect(Collectors.toList());
   }
 }
