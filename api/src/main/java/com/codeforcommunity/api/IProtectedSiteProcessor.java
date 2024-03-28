@@ -15,6 +15,7 @@ import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
+import com.codeforcommunity.dto.site.ReportSiteRequest;
 import com.codeforcommunity.dto.site.SiteEntryImage;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
@@ -134,4 +135,6 @@ public interface IProtectedSiteProcessor {
 
   /** Allows Admin users to approve uploaded site images of the given ID */
   void approveSiteImage(JWTData userData, int imageID);
+
+  void reportSiteForIssues(JWTData userData, int siteId, ReportSiteRequest reportSiteRequest);
 }

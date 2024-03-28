@@ -18,6 +18,7 @@ import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RejectImageRequest;
+import com.codeforcommunity.dto.site.ReportSiteRequest;
 import com.codeforcommunity.dto.site.SiteEntryImage;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
@@ -71,6 +72,7 @@ public class ProtectedSiteRouter implements IRouter {
     registerRejectSiteImage(router);
     registerApproveSiteImage(router);
     registerGetUnapprovedImages(router);
+    registerReportSiteIssue(router);
     return router;
   }
 
@@ -487,5 +489,22 @@ public class ProtectedSiteRouter implements IRouter {
 
   private List<Integer> parseOptionalQueryParamList(String list) {
     return Arrays.stream(list.split(",")).map(Integer::parseInt).collect(Collectors.toList());
+  }
+
+  private void registerReportSiteIssue(Router router) {
+    Route reportSiteIssues = router.post("/:site_id/report");
+    reportSiteIssues.handler(this::handleReportSiteIssue);
+  }
+
+  private void handleReportSiteIssue(RoutingContext ctx) {
+    int siteId = RestFunctions.getRequestParameterAsInt(ctx.request(), "site_id");
+    JWTData userData = ctx.get("jwt_data");
+
+    ReportSiteRequest reportSiteRequest =
+        RestFunctions.getJsonBodyAsClass(ctx, ReportSiteRequest.class);
+
+    processor.reportSiteForIssues(userData, siteId, reportSiteRequest);
+
+    end(ctx.response(), 200);
   }
 }
