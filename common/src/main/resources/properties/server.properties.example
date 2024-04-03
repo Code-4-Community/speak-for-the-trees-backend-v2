@@ -26,7 +26,7 @@ email_sender_name = Speak For The Trees Boston
 email_host = smtp.gmail.com
 email_port = 465
 email_should_send = false
-email_report_destination = adopt@treeboston.org
+email_report_destination = placeholder_email
 
 email_subject_welcome = Welcome!
 email_subject_email_change = Your Email Has Changed

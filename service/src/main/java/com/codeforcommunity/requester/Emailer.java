@@ -162,7 +162,8 @@ public class Emailer {
                 senderName, reportEmailDestination, subjectSiteReport, s));
   }
 
-  public void sendArbitraryEmail(HashSet<String> sendToEmails, String subject, String body) {
+  public void sendArbitraryEmail(HashSet<String> sendToEmails, String subject, String body,
+                                 List<AttachmentResource> attachments) {
     String filePath = "/emails/Email.html";
 
     Map<String, String> templateValues = new HashMap<>();
