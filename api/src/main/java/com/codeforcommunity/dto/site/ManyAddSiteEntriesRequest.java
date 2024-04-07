@@ -17,6 +17,8 @@ public class ManyAddSiteEntriesRequest extends ApiDto {
     this.sites = sites;
   }
 
+  public ManyAddSiteEntriesRequest() {}
+
   public List<UpdateSiteRequest> getUpdateSiteRequests() {
     return updateSiteRequests;
   }

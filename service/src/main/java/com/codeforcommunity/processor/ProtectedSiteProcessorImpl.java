@@ -66,6 +66,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
@@ -1060,7 +1061,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
             String.format("Found site record with no ID but matched with id %d", siteId));
       }
 
-      if (siteRecord.getId() != siteId) {
+      if (!Objects.equals(siteRecord.getId(), siteId)) {
         throw new RuntimeException(
             String.format("Found site record with id %d but matched with id %d", siteRecord.getId(), siteId));
 
@@ -1082,7 +1083,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       records.add(entry.getValue());
     }
 
-    db.batchStore(records);
+    db.batchStore(records).execute();
   }
 
   @Override
@@ -1099,9 +1100,16 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     for (int i = 0; i < siteIds.size(); i++) {
       int siteId = siteIds.get(i);
       UpdateSiteRequest req = updateSiteRequests.get(i);
+      SiteEntriesRecord record = db.newRecord(SITE_ENTRIES);
 
-      SiteEntriesRecord record =
+      record.setId(newId + i);
+      record.setSiteId(siteId);
+      populateSiteEntry(record, req);
+
+      records.add(record);
     }
+
+    db.batchStore(records).execute();
   }
 
   @Override

@@ -17,6 +17,8 @@ public class ManyEditSitesRequest extends ApiDto {
     this.sites = sites;
   }
 
+  public ManyEditSitesRequest() {}
+
   public List<EditSiteRequest> getEditSitesRequests() {
     return editSitesRequests;
   }
