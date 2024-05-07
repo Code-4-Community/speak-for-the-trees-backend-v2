@@ -153,7 +153,7 @@ public class Emailer {
     templateValues.put("email", userEmail);
     templateValues.put("siteId", String.valueOf(siteId));
     templateValues.put("reportReason", reportReason);
-    templateValues.put("reportDescription", reportDescription);
+    templateValues.put("reportDescription", reportDescription == null ? "N/A" : reportDescription);
 
     Optional<String> emailBody = emailOperations.getTemplateString(filePath, templateValues);
     emailBody.ifPresent(
