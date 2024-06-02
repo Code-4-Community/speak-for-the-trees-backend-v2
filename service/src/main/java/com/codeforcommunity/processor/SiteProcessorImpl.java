@@ -53,6 +53,7 @@ public class SiteProcessorImpl implements ISiteProcessor {
     List<SiteEntriesRecord> records =
         db.selectFrom(SITE_ENTRIES)
             .where(SITE_ENTRIES.SITE_ID.eq(siteId))
+            .and(SITE_ENTRIES.DELETED_AT.isNull())
             .orderBy(SITE_ENTRIES.CREATED_AT.desc())
             .fetch();
 

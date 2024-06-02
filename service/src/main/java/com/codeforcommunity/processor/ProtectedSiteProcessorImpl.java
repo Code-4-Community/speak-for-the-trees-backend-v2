@@ -2,6 +2,7 @@ package com.codeforcommunity.processor;
 
 import static org.jooq.generated.Tables.ADOPTED_SITES;
 import static org.jooq.generated.Tables.BLOCKS;
+import static org.jooq.generated.Tables.ENTRY_USERNAMES;
 import static org.jooq.generated.Tables.NEIGHBORHOODS;
 import static org.jooq.generated.Tables.PARENT_ACCOUNTS;
 import static org.jooq.generated.Tables.SITES;
@@ -15,12 +16,10 @@ import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.max;
 import static org.jooq.impl.DSL.noCondition;
 import static org.jooq.impl.DSL.when;
-import static org.jooq.impl.DSL.withRecursive;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
 import com.codeforcommunity.dataaccess.AuthDatabaseOperations;
-import com.codeforcommunity.dto.site.*;
 import com.codeforcommunity.dto.site.AddSiteRequest;
 import com.codeforcommunity.dto.site.AddSitesRequest;
 import com.codeforcommunity.dto.site.AdoptedSitesResponse;
@@ -61,12 +60,11 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
+import org.jooq.Record2;
 import org.jooq.Record3;
 import org.jooq.Record11;
 import org.jooq.Result;
@@ -1080,5 +1078,21 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     record.setUserId(userData.getUserId());
     record.setCreatedAt(Timestamp.valueOf(LocalDateTime.now()));
     record.store();
+  }
+
+  @Override
+  public void deleteSiteEntry(JWTData userData, int entryId) {
+    assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
+    checkEntryExists(entryId);
+
+    SiteEntriesRecord entry = db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.ID.eq(entryId)).fetchOne();
+    int count = db.selectCount().from(SITE_ENTRIES).where(SITE_ENTRIES.SITE_ID.eq(entry.getSiteId())).fetchOne(0, int.class);
+
+    if (count <= 1) {
+      throw new ForbiddenException("Must have at least one other site entry");
+    }
+
+    entry.setDeletedAt(new Timestamp(System.currentTimeMillis()));
+    entry.store();
   }
 }
