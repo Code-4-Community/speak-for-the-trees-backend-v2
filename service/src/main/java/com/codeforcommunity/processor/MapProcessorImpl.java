@@ -273,6 +273,7 @@ public class MapProcessorImpl implements IMapProcessor {
                 .on(SITES.ID.eq(newEntries.field(SITE_ENTRIES.SITE_ID)))
                 .leftJoin(ADOPTED_SITES)
                 .on(ADOPTED_SITES.SITE_ID.eq(SITES.ID))
+                .where(SITES.DELETED_AT.isNull())
                 .orderBy(SITES.ID)
                 .fetch();
 
@@ -293,7 +294,7 @@ public class MapProcessorImpl implements IMapProcessor {
   private static class SiteGeoResponseCache {
     private static SiteGeoResponse response;
     private static long expireTime = 0;
-    private static final long timeToLive = 10000; // in milliseconds, 5000 is the avg. response time
+    private static final long timeToLive = 1 * 60 * 1000; // in milliseconds, 5000 is the avg. response time
 
     public static SiteGeoResponse getResponse() {
       return response;
