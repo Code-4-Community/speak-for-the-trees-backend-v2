@@ -112,7 +112,9 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
    * @param entryId to check
    */
   private void checkEntryExists(int entryId) {
-    if (!db.fetchExists(db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.ID.eq(entryId)))) {
+    if (!db.fetchExists(
+        db.selectFrom(SITE_ENTRIES).where(SITE_ENTRIES.ID.eq(entryId)).and(SITE_ENTRIES.DELETED_AT.isNull())
+    )) {
       throw new ResourceDoesNotExistException(entryId, "Entry");
     }
   }
@@ -420,8 +422,12 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   @Override
   public AdoptedSitesResponse getAdoptedSites(JWTData userData) {
     List<Integer> favoriteSites =
-        db.selectFrom(ADOPTED_SITES)
+        db.select()
+            .from(ADOPTED_SITES)
+            .join(SITES)
+            .on(ADOPTED_SITES.SITE_ID.eq(SITES.ID))
             .where(ADOPTED_SITES.USER_ID.eq(userData.getUserId()))
+            .and(SITES.DELETED_AT.isNull())
             .fetch(ADOPTED_SITES.SITE_ID);
 
     return new AdoptedSitesResponse(favoriteSites);
@@ -686,6 +692,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
   private SiteEntriesRecord latestSiteEntry(int siteId) {
     return db.selectFrom(SITE_ENTRIES)
         .where(SITE_ENTRIES.SITE_ID.eq(siteId))
+        .and(SITE_ENTRIES.DELETED_AT.isNull())
         .orderBy(SITE_ENTRIES.CREATED_AT.desc())
         .fetchInto(SiteEntriesRecord.class)
         .get(0);
@@ -767,7 +774,8 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     Condition filterCondition =
         activityCounts
             .field(ACTIVITY_COUNT_COLUMN, Integer.class)
-            .ge(filterSitesRequest.getActivityCountMin());
+            .ge(filterSitesRequest.getActivityCountMin())
+            .and(SITE_ENTRIES.DELETED_AT.isNull());
     if (filterSitesRequest.getTreeCommonNames() != null)
       filterCondition =
           filterCondition.and(SITE_ENTRIES.COMMON_NAME.in(filterSitesRequest.getTreeCommonNames()));
