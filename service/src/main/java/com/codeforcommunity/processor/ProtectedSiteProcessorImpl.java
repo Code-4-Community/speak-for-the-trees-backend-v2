@@ -15,7 +15,6 @@ import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.max;
 import static org.jooq.impl.DSL.noCondition;
 import static org.jooq.impl.DSL.when;
-import static org.jooq.impl.DSL.withRecursive;
 
 import com.codeforcommunity.api.IProtectedSiteProcessor;
 import com.codeforcommunity.auth.JWTData;
@@ -61,16 +60,15 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 import org.jooq.Condition;
 import org.jooq.DSLContext;
-import org.jooq.Record3;
 import org.jooq.Record11;
+import org.jooq.Record3;
 import org.jooq.Result;
 import org.jooq.Table;
+import org.jooq.generated.tables.pojos.Users;
 import org.jooq.generated.tables.records.AdoptedSitesRecord;
 import org.jooq.generated.tables.records.ParentAccountsRecord;
 import org.jooq.generated.tables.records.SiteEntriesRecord;
@@ -79,7 +77,6 @@ import org.jooq.generated.tables.records.SitesRecord;
 import org.jooq.generated.tables.records.StewardshipRecord;
 import org.jooq.generated.tables.records.UserSiteReportsRecord;
 import org.jooq.generated.tables.records.UsersRecord;
-import org.jooq.generated.tables.pojos.Users;
 
 public class ProtectedSiteProcessorImpl extends AbstractProcessor
     implements IProtectedSiteProcessor {
@@ -106,7 +103,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     if (!db.fetchExists(db.selectFrom(SITES).where(SITES.ID.eq(siteId)))) {
       throw new ResourceDoesNotExistException(siteId, "Site");
     }
-  } 
+  }
 
   /**
    * Check if an entry with the given entryId exists.
@@ -249,14 +246,18 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
       return;
     }
 
-    int reportsToday = db.selectCount()
-        .from(USER_SITE_REPORTS)
-        .where(USER_SITE_REPORTS.USER_ID.eq(userData.getUserId()))
-        .and(USER_SITE_REPORTS.CREATED_AT.greaterOrEqual(Timestamp.valueOf(LocalDateTime.now().minusDays(1))))
-        .fetchOne(0, int.class);
+    int reportsToday =
+        db.selectCount()
+            .from(USER_SITE_REPORTS)
+            .where(USER_SITE_REPORTS.USER_ID.eq(userData.getUserId()))
+            .and(
+                USER_SITE_REPORTS.CREATED_AT.greaterOrEqual(
+                    Timestamp.valueOf(LocalDateTime.now().minusDays(1))))
+            .fetchOne(0, int.class);
 
     if (reportsToday >= MAX_DAILY_SITE_REPORTS) {
-      throw new ForbiddenException("Users can only make " + MAX_DAILY_SITE_REPORTS + " reports a day!");
+      throw new ForbiddenException(
+          "Users can only make " + MAX_DAILY_SITE_REPORTS + " reports a day!");
     }
   }
 
@@ -900,7 +901,8 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
           filterCondition.and(NEIGHBORHOODS.ID.in(filterSiteImageRequest.getNeighborhoodIds()));
     if (filterSiteImageRequest.getSubmittedStart() != null)
       filterCondition =
-          filterCondition.and(SITE_IMAGES.UPLOADED_AT.ge(filterSiteImageRequest.getSubmittedStart()));
+          filterCondition.and(
+              SITE_IMAGES.UPLOADED_AT.ge(filterSiteImageRequest.getSubmittedStart()));
     if (filterSiteImageRequest.getSubmittedEnd() != null)
       filterCondition =
           filterCondition.and(SITE_IMAGES.UPLOADED_AT.le(filterSiteImageRequest.getSubmittedEnd()));
@@ -948,8 +950,7 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
             rec -> {
               String uploaderName = rec.get(USERS.FIRST_NAME) + ' ' + rec.get(USERS.LAST_NAME);
 
-              Timestamp dateSubmitted =
-                  rec.get(SITE_IMAGES.UPLOADED_AT);
+              Timestamp dateSubmitted = rec.get(SITE_IMAGES.UPLOADED_AT);
 
               return new FilterSiteImageResponse(
                   rec.get(SITE_IMAGES.ID),
@@ -1034,27 +1035,29 @@ public class ProtectedSiteProcessorImpl extends AbstractProcessor
     checkImageExists(imageId);
     assertAdminOrSuperAdmin(userData.getPrivilegeLevel());
 
-    String reason = rejectionReason == null ? "Your image upload was rejected by an admin" : rejectionReason;
+    String reason =
+        rejectionReason == null ? "Your image upload was rejected by an admin" : rejectionReason;
 
-    String approvalStatus = db.select(SITE_IMAGES.APPROVAL_STATUS)
+    String approvalStatus =
+        db.select(SITE_IMAGES.APPROVAL_STATUS)
             .from(SITE_IMAGES)
-            .where(SITE_IMAGES.ID.eq(imageId)).fetchOne(0, String.class);
+            .where(SITE_IMAGES.ID.eq(imageId))
+            .fetchOne(0, String.class);
     if (approvalStatus.equals(ImageApprovalStatus.SUBMITTED.getApprovalStatus())) {
-      int uploaderId  = db.select(SITE_IMAGES.UPLOADER_ID)
+      int uploaderId =
+          db.select(SITE_IMAGES.UPLOADER_ID)
               .from(SITE_IMAGES)
               .where(SITE_IMAGES.ID.eq(imageId))
               .fetchOne(0, int.class);
 
       UsersRecord user = db.selectFrom(USERS).where(USERS.ID.eq(uploaderId)).fetchOne();
       String userEmail = user.getEmail();
-      String userFullName =
-              AuthDatabaseOperations.getFullName(user.into(Users.class));
+      String userFullName = AuthDatabaseOperations.getFullName(user.into(Users.class));
       emailer.sendRejectImageEmail(userEmail, userFullName, reason);
       deleteSiteImage(userData, imageId);
     } else {
       throw new IllegalStateException("Cannot reject an already approved image");
     }
-
   }
 
   @Override

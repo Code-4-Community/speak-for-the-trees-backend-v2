@@ -9,21 +9,25 @@ import com.codeforcommunity.dto.emailer.LoadTemplateResponse;
 import com.codeforcommunity.rest.IRouter;
 import com.codeforcommunity.rest.RestFunctions;
 
-import java.util.Collections;
-import java.util.List;
-
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Collections;
+import java.util.List;
+import java.util.function.Consumer;
 
 public class ProtectedEmailerRouter implements IRouter {
 
   private final IProtectedEmailerProcessor processor;
+  private final RateLimiter rateLimiter;
 
-  public ProtectedEmailerRouter(IProtectedEmailerProcessor processor) {
+  public ProtectedEmailerRouter(IProtectedEmailerProcessor processor, RateLimiter rateLimiter) {
     this.processor = processor;
+    this.rateLimiter = rateLimiter;
   }
 
   @Override
@@ -40,7 +44,8 @@ public class ProtectedEmailerRouter implements IRouter {
 
   private void registerAddTemplate(Router router) {
     Route addTemplate = router.post("/add_template");
-    addTemplate.handler(this::handleAddTemplate);
+    Consumer<RoutingContext> c = this::handleAddTemplate;
+    addTemplate.handler((Handler<RoutingContext>)RateLimiter.decorateConsumer(this.rateLimiter, this::handleAddTemplate));
   }
 
   private void handleAddTemplate(RoutingContext ctx) {
@@ -91,8 +96,8 @@ public class ProtectedEmailerRouter implements IRouter {
 
     List<String> names = processor.loadTemplateNames(userData);
     end(
-            ctx.response(),
-            200,
-            JsonObject.mapFrom(Collections.singletonMap("templates", names)).toString());
+        ctx.response(),
+        200,
+        JsonObject.mapFrom(Collections.singletonMap("templates", names)).toString());
   }
 }

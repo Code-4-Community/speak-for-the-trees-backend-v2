@@ -28,6 +28,8 @@ import com.codeforcommunity.rest.subrouter.ReportRouter;
 import com.codeforcommunity.rest.subrouter.ReservationRouter;
 import com.codeforcommunity.rest.subrouter.SiteRouter;
 import com.codeforcommunity.rest.subrouter.TeamsRouter;
+
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
@@ -49,20 +51,21 @@ public class ApiRouter implements IRouter {
   private final ProtectedEmailerRouter protectedEmailerRouter;
 
   public ApiRouter(
-      IAuthProcessor authProcessor,
-      IProtectedUserProcessor protectedUserProcessor,
-      IImportProcessor importProcessor,
-      IReservationProcessor reservationProcessor,
-      ILeaderboardProcessor leaderboardProcessor,
-      IMapProcessor mapProcessor,
-      ITeamsProcessor teamsProcessor,
-      IProtectedSiteProcessor protectedSiteProcessor,
-      ISiteProcessor siteProcessor,
-      IProtectedReportProcessor protectedReportProcessor,
-      IReportProcessor reportProcessor,
-      IProtectedNeighborhoodsProcessor protectedNeighborhoodsProcessor,
-      IProtectedEmailerProcessor emailerProcessor,
-      JWTAuthorizer jwtAuthorizer) {
+          IAuthProcessor authProcessor,
+          IProtectedUserProcessor protectedUserProcessor,
+          IImportProcessor importProcessor,
+          IReservationProcessor reservationProcessor,
+          ILeaderboardProcessor leaderboardProcessor,
+          IMapProcessor mapProcessor,
+          ITeamsProcessor teamsProcessor,
+          IProtectedSiteProcessor protectedSiteProcessor,
+          ISiteProcessor siteProcessor,
+          IProtectedReportProcessor protectedReportProcessor,
+          IReportProcessor reportProcessor,
+          IProtectedNeighborhoodsProcessor protectedNeighborhoodsProcessor,
+          IProtectedEmailerProcessor emailerProcessor,
+          JWTAuthorizer jwtAuthorizer,
+          RateLimiter rateLimiter) {
     this.commonRouter = new CommonRouter(jwtAuthorizer);
     this.authRouter = new AuthRouter(authProcessor);
     this.protectedUserRouter = new ProtectedUserRouter(protectedUserProcessor);
@@ -77,7 +80,7 @@ public class ApiRouter implements IRouter {
     this.reportRouter = new ReportRouter(reportProcessor);
     this.protectedNeighborhoodsRouter =
         new ProtectedNeighborhoodsRouter(protectedNeighborhoodsProcessor);
-    this.protectedEmailerRouter = new ProtectedEmailerRouter(emailerProcessor);
+    this.protectedEmailerRouter = new ProtectedEmailerRouter(emailerProcessor, rateLimiter);
   }
 
   /** Initialize a router and register all route handlers on it. */

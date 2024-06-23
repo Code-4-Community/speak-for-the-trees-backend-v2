@@ -17,13 +17,14 @@ import com.codeforcommunity.dto.site.NameSiteEntryRequest;
 import com.codeforcommunity.dto.site.ParentAdoptSiteRequest;
 import com.codeforcommunity.dto.site.ParentRecordStewardshipRequest;
 import com.codeforcommunity.dto.site.RecordStewardshipRequest;
-import com.codeforcommunity.dto.site.RejectImageRequest;
 import com.codeforcommunity.dto.site.ReportSiteRequest;
 import com.codeforcommunity.dto.site.SiteEntryImage;
 import com.codeforcommunity.dto.site.UpdateSiteRequest;
 import com.codeforcommunity.dto.site.UploadSiteImageRequest;
 import com.codeforcommunity.rest.IRouter;
 import com.codeforcommunity.rest.RestFunctions;
+
+import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.Route;
@@ -364,9 +365,7 @@ public class ProtectedSiteRouter implements IRouter {
         RestFunctions.getOptionalQueryParam(ctx, "lastActivityEnd", Date::valueOf);
     Optional<List<Integer>> neighborhoodIds =
         RestFunctions.getOptionalQueryParam(
-            ctx,
-            "neighborhoodIds",
-            this::parseOptionalQueryParamList);
+            ctx, "neighborhoodIds", this::parseOptionalQueryParamList);
     Optional<Integer> activityCountMax =
         RestFunctions.getOptionalQueryParam(ctx, "activityCountMax", Integer::parseInt);
 
@@ -446,19 +445,16 @@ public class ProtectedSiteRouter implements IRouter {
     JWTData userData = ctx.get("jwt_data");
 
     Optional<Timestamp> submittedStart =
-        RestFunctions.getOptionalQueryParam(ctx, "submittedStart", (date) -> new Timestamp(Date.valueOf(date).getTime()));
-    Optional<Timestamp> submittedEnd =
-        RestFunctions.getOptionalQueryParam(ctx, "submittedEnd", (date) -> new Timestamp(Date.valueOf(date).getTime()));
-    Optional<List<Integer>> siteIds =
         RestFunctions.getOptionalQueryParam(
-            ctx,
-            "siteIds",
-            this::parseOptionalQueryParamList);
+            ctx, "submittedStart", (date) -> new Timestamp(Date.valueOf(date).getTime()));
+    Optional<Timestamp> submittedEnd =
+        RestFunctions.getOptionalQueryParam(
+            ctx, "submittedEnd", (date) -> new Timestamp(Date.valueOf(date).getTime()));
+    Optional<List<Integer>> siteIds =
+        RestFunctions.getOptionalQueryParam(ctx, "siteIds", this::parseOptionalQueryParamList);
     Optional<List<Integer>> neighborhoodIds =
         RestFunctions.getOptionalQueryParam(
-            ctx,
-            "neighborhoodIds",
-            this::parseOptionalQueryParamList);
+            ctx, "neighborhoodIds", this::parseOptionalQueryParamList);
     FilterSiteImageRequest filterSiteImageRequest =
         new FilterSiteImageRequest(
             submittedStart.orElse(null),

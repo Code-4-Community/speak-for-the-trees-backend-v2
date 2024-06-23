@@ -128,9 +128,12 @@ public interface IProtectedSiteProcessor {
   /** Edits the site entry with the given entryId */
   void editSiteEntry(JWTData userData, int entryId, UpdateSiteRequest editSiteEntryRequest);
 
-  /** Rejects the site image (deletes and optionally sends an email with a rejection reason
-   * to the uploader) with the given imageId */
+  /**
+   * Rejects the site image (deletes and optionally sends an email with a rejection reason to the
+   * uploader) with the given imageId
+   */
   void rejectSiteImage(JWTData userData, int imageId, String rejectionReason);
+
   List<SiteEntryImage> getUnapprovedImages(JWTData userData);
 
   /** Allows Admin users to approve uploaded site images of the given ID */

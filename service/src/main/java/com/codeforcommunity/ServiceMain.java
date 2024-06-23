@@ -33,7 +33,13 @@ import com.codeforcommunity.processor.TeamsProcessorImpl;
 import com.codeforcommunity.propertiesLoader.PropertiesLoader;
 import com.codeforcommunity.requester.Emailer;
 import com.codeforcommunity.rest.ApiRouter;
+
+import io.github.resilience4j.ratelimiter.RateLimiter;
+import io.github.resilience4j.ratelimiter.RateLimiterConfig;
+import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.vertx.core.Vertx;
+
+import java.time.Duration;
 import java.util.Properties;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
@@ -94,6 +100,17 @@ public class ServiceMain {
     // Create the Vertx instance
     Vertx vertx = Vertx.vertx();
 
+    // Create Resilience4j rate limiter
+    RateLimiterConfig config = RateLimiterConfig.custom()
+            .limitRefreshPeriod(Duration.ofMillis(500))
+            .limitForPeriod(50)
+            .timeoutDuration(Duration.ofMillis(5000))
+            .build();
+
+    RateLimiterRegistry rateLimiterRegistry = RateLimiterRegistry.of(config);
+
+    RateLimiter rateLimiter = rateLimiterRegistry.rateLimiter("defaultRateLimiter");
+
     // Configure the Slack logger and log uncaught exceptions
     String productName = PropertiesLoader.loadProperty("slack_product_name");
     SLogger.initializeLogger(vertx, productName);
@@ -133,7 +150,8 @@ public class ServiceMain {
             reportProc,
             protectedNeighborhoodsProc,
             emailerProc,
-            jwtAuthorizer);
+            jwtAuthorizer,
+                rateLimiter);
 
     startApiServer(router, vertx);
   }

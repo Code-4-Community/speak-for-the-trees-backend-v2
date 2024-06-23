@@ -17,7 +17,6 @@ import org.simplejavamail.api.mailer.config.TransportStrategy;
 import org.simplejavamail.email.EmailBuilder;
 import org.simplejavamail.mailer.MailerBuilder;
 
-
 public class EmailOperations {
   private final SLogger logger = new SLogger(EmailOperations.class);
 
@@ -175,7 +174,10 @@ public class EmailOperations {
 
   /** Send an email with the given subject and body to the users with the given email addresses. */
   public void sendEmailToMultipleRecipients(
-      HashSet<String> sendToEmails, String subject, String emailBody, List<AttachmentResource> attachments) {
+      HashSet<String> sendToEmails,
+      String subject,
+      String emailBody,
+      List<AttachmentResource> attachments) {
     if (!shouldSendEmails) {
       return;
     }
