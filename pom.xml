@@ -88,14 +88,14 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
           </java>
         </configuration>
         <executions>
-<!--          <execution>-->
-<!--            <id>spotless-apply</id>-->
-<!--            &lt;!&ndash; auto formats on 'validate' step (which is part of 'install') &ndash;&gt;-->
-<!--            <phase>validate</phase>-->
-<!--            <goals>-->
-<!--              <goal>apply</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
+          <execution>
+            <id>spotless-apply</id>
+            <!-- auto formats on 'validate' step (which is part of 'install') -->
+            <phase>validate</phase>
+            <goals>
+              <goal>apply</goal>
+            </goals>
+          </execution>
         </executions>
       </plugin>
       <plugin>
@@ -124,7 +124,7 @@ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xs
       <dependency>
         <groupId>org.slf4j</groupId>
         <artifactId>slf4j-api</artifactId>
-        <version>1.7.5</version>
+        <version>1.7.30</version>
       </dependency>
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
