@@ -194,6 +194,7 @@ public class MapProcessorImpl implements IMapProcessor {
                     this.db
                         .select(SITE_ENTRIES.SITE_ID, maxDate)
                         .from(SITE_ENTRIES)
+                        .where(SITE_ENTRIES.DELETED_AT.isNull())
                         .groupBy(SITE_ENTRIES.SITE_ID))
                 .as("recentlyCreated");
 
